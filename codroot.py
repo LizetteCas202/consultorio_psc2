@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN CORREGIDA (EDICIÓN SUEÑO - COMPACTA & SIN ERRORES)
+#      VERSIÓN FINAL COMPACTA: codroot.py (LOGOS & INPUTS REPARADOS)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -119,7 +119,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: PANTALLA DE LOGIN (OPTIMIZADA, COMPACTA Y SIN RECTÁNGULOS AZULES)
+# FLUJO 1: PANTALLA DE LOGIN (ARREGLO DE TEXTO, CONTRASEÑA Y LOGO SIN RECORTE)
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
     st.markdown("""
@@ -127,66 +127,76 @@ if not st.session_state.autenticado:
         [data-testid="stSidebar"] { display: none !important; }
         .stApp { background-color: #ffffff !important; }
         
-        /* Reducir el scroll de la página completa */
-        .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+        /* Reducir espacio superior de la página para evitar scroll totalmente */
+        .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; }
         
-        /* Forzar visibilidad del texto general */
+        /* Forzar visibilidad del texto de etiquetas y títulos pequeños */
         div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, span { 
             color: #081849 !important; 
-            font-weight: 600 !important; 
-            margin-bottom: 2px !important;
+            font-weight: 700 !important; 
+            margin-bottom: 1px !important;
         }
         
-        /* Títulos más compactos */
-        h1 { color: #213885 !important; font-weight: 700; text-align: center; font-size: 24px !important; margin-top: 5px !important; margin-bottom: 5px !important; }
+        /* Estilos de encabezados compactos */
+        h1 { color: #213885 !important; font-weight: 700; text-align: center; font-size: 26px !important; margin-top: 5px !important; margin-bottom: 2px !important; }
         h2 { color: #213885 !important; font-weight: 700; text-align: center; font-size: 20px !important; }
         
-        /* REPARACIÓN DE BOTONES: Texto Blanco obligatorio */
+        /* BOTONES DEL LOGIN: Texto blanco garantizado con alta prioridad */
         button, div.stButton > button, [data-testid="stForm"] button {
             background-color: #213885 !important;
-            color: #ffffff !important;
-            border-radius: 6px !important;
-            font-weight: 700 !important;
             border: 1px solid #213885 !important;
+            border-radius: 6px !important;
+            height: 42px !important;
             width: 100%;
         }
         
-        /* Evitar que el texto cambie a oscuro en el hover o focus */
-        button p, div.stButton > button p, .stButton div p {
+        /* Forzar el color blanco del texto de los botones por encima de cualquier regla */
+        button p, div.stButton > button p, .stButton div p, span[data-testid="stMarkdownContainer"] p {
             color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
         }
         
         button:hover, div.stButton > button:hover {
             background-color: #081849 !important;
-            color: #ffffff !important;
+            border-color: #081849 !important;
         }
-        
-        /* ELIMINAR EL RECTÁNGULO AZÚL DEL INPUT DE CONTRASEÑA */
-        div[data-disabled="false"] div[role="presentation"] {
+
+        /* FIX CRÍTICO: ELIMINAR CONTENEDOR AZUL EN EL CAMPO DE CONTRASEÑA */
+        div[data-baseweb="input"] {
             background-color: transparent !important;
             border: none !important;
         }
         
-        /* Asegurar que el contenedor interno de la contraseña no se pinte de azul */
-        div.stTextInput div[data-baseweb="input"] div {
+        /* Asegurar que el botón interno del ojito comparta el color antracita oscuro de la caja */
+        div[data-baseweb="input"] button {
             background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Icono del ojito visible en color blanco/gris claro */
+        div[data-baseweb="input"] svg {
+            fill: #ffffff !important;
+            color: #ffffff !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    col_izq, col_centro, col_der = st.columns([1.2, 1.2, 1.2])
+    # Reorganización limpia para centrar el logo de forma nativa sin recortes
+    col_izq, col_centro, col_der = st.columns([1.1, 1.2, 1.1])
     with col_centro:
-        # Logo más pequeño para evitar scroll involuntario
-        st.markdown(f'<div style="text-align:center; margin-top: 10px; margin-bottom: 5px;"><img src="{LOGO_UJAT_URL}" width="105"></div>', unsafe_allow_html=True)
+        # Renderizado de imagen nativo de Streamlit (Evita recortes de CSS)
+        st.image(LOGO_UJAT_URL, width=120, use_container_width=False)
         
         if st.session_state.sub_pantalla_auth == "login":
             st.markdown("<h1>Consultorio Psicológico DACYTI</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align:center; color:#081849; font-size:13px; margin-bottom: 15px;'>Sistema de Gestión Interdivisional - UJAT</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; color:#081849; font-size:14px; margin-bottom: 12px; font-weight:600;'>Sistema de Gestión Interdivisional - UJAT</p>", unsafe_allow_html=True)
             
             u_login = st.text_input("Usuario Corporativo:")
             p_login = st.text_input("Contraseña:", type="password")
             
-            st.write("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+            st.write("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             if st.button("Ingresar al Portal"):
                 conn = conectar_db_local()
                 cursor = conn.cursor()
@@ -199,7 +209,7 @@ if not st.session_state.autenticado:
                     st.error("Credenciales corporativas inválidas.")
                 conn.close()
                 
-            st.write("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+            st.write("<hr style='margin: 12px 0; border: 0; border-top: 1px solid #CCCACC;'>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("📝 Registrarse"): st.session_state.sub_pantalla_auth = "registro"; st.rerun()
@@ -230,7 +240,7 @@ if not st.session_state.autenticado:
             if st.button("⬅️ Cancelar"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA 
+# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA (MANTIENE LA COHERENCIA CLÍNICA)
 # -------------------------------------------------------------------------------------
 else:
     st.markdown(f"""
@@ -247,21 +257,18 @@ else:
             font-weight: 700 !important; 
         }}
         
-        /* Contenedores con tu Gris Paleta exacto */
         div[data-testid="stAlert"], .stAlert, div[data-testid="stCallout"] {{
             background-color: #CCCACC !important;
             color: #081849 !important;
             border-left: 6px solid #213885 !important;
             border-radius: 8px;
         }}
-        div[data-testid="stAlert"] p, .stAlert p {{ color: #081849 !important; }}
         
-        /* Botones internos con texto blanco */
+        /* Botones internos */
         div.stButton > button, .stButton button {{
             background-color: #213885 !important;
             color: #ffffff !important;
             border-radius: 6px !important;
-            font-weight: 600 !important;
         }}
         div.stButton > button p, .stButton button p {{ color: #ffffff !important; }}
         
@@ -323,12 +330,10 @@ else:
         df_exp = pd.read_sql_query(query, conn, params=args)
         conn.close()
         
-        if not df_exp.empty:
-            st.dataframe(df_exp, use_container_width=True)
-        else:
-            st.info("No se registran expedientes que coincidan con los filtros aplicados.")
+        if not df_exp.empty: st.dataframe(df_exp, use_container_width=True)
+        else: st.info("No se registran expedientes.")
 
-        with st.expander("➕ Crear Nuevo Expediente Clínico (Multidivisional)"):
+        with st.expander("➕ Crear Nuevo Expediente Clínico"):
             nom = st.text_input("Nombre Completo:", key="form_nom")
             c_e1, c_e2 = st.columns(2)
             with c_e1: mat = st.text_input("Matrícula Institucional:", key="form_mat")
@@ -358,12 +363,10 @@ else:
                         """, (mat.strip(), nom.strip(), gen, div_sel, car, sem, tel, cor, obs, tags_procesadas))
                         conn.commit()
                         limpiar_formulario_expediente()
-                        st.success("¡Expediente almacenado correctamente!")
+                        st.success("¡Expediente almacenado!")
                         st.rerun()
-                    except sqlite3.IntegrityError:
-                        st.error("Error: La matrícula ya existe.")
-                    finally:
-                        conn.close()
+                    except sqlite3.IntegrityError: st.error("Error: La matrícula ya existe.")
+                    finally: conn.close()
 
     # --- MÓDULO 2: CITAS ---
     elif seccion == "📅 Agenda de Citas":
@@ -377,9 +380,8 @@ else:
             """, conn)
             conn.close()
             if not df_cit.empty: st.dataframe(df_cit, use_container_width=True)
-            else: st.info("No hay citas programadas.")
         with col_c2:
-            mat_buscar = st.text_input("Ingrese Matrícula del Alumno:")
+            mat_buscar = st.text_input("Ingrese Matrícula:")
             if mat_buscar.strip():
                 conn = conectar_db_local()
                 cursor = conn.cursor()
@@ -404,5 +406,5 @@ else:
         st.markdown("<h3>Panel de Control</h3>", unsafe_allow_html=True)
         conn = conectar_db_local()
         tot_exp = conn.execute("SELECT COUNT(*) FROM expedientes").fetchone()[0]
-        st.metric("Expedientes Totales Registrados", tot_exp)
+        st.metric("Expedientes Totales", tot_exp)
         conn.close()

@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (LOG-IN EXCLUSIVO V1)
+#           APLICACIÓN PRINCIPAL: codroot.py (EDICIÓN INSTITUCIONAL UJAT)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -8,7 +8,7 @@ from codconexion import crear_tablas_iniciales, conectar_db
 from codauth import verificar_credenciales, inicializar_usuario_admin, registrar_usuario, recuperar_clave_por_pregunta
 from codestadisticas import renderizar_reportes_direccion, obtener_dataframe
 
-# Configuración Inicial Estilo Web Profesional
+# Configuración Inicial Estilo Web Profesional UJAT
 st.set_page_config(
     page_title="Centro Psicológico UJAT",
     page_icon="🧠",
@@ -27,11 +27,14 @@ if "usuario_actual" not in st.session_state:
 if "sub_pantalla_auth" not in st.session_state:
     st.session_state.sub_pantalla_auth = "login"
 
+# URL Estable del Escudo Oficial de la UJAT para la identidad institucional
+LOGO_UJAT_URL = "https://www.ujat.mx/Contenido/imagenes/ujat.png"
+
 # -------------------------------------------------------------------------------------
-# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA (Cero barras laterales, cero distracciones)
+# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA (Paleta UJAT Oficial & Tipografía Notion)
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
-    # Inyección de CSS para OCULTAR por completo la barra de navegación lateral y centrar el Login
+    # Inyección de CSS Avanzado: Colores Juchimán y fuentes minimalistas de Notion
     st.markdown("""
         <style>
         /* Ocultar barra lateral en el Login */
@@ -41,71 +44,106 @@ if not st.session_state.autenticado:
         [data-testid="stSidebarCollapsedControl"] {
             display: none !important;
         }
-        /* Fondo blanco e interfaz centrada tipo red social */
+        
+        /* Fondo general blanco y tipografía limpia de Notion */
         .stApp {
             background-color: #ffffff !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         }
-        .login-box {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            max-width: 450px;
-            margin: 80px auto;
-            text-align: center;
-            border: 1px solid #e1e4e6;
+        
+        /* Contenedores de texto y fuentes */
+        h1, h2, h3, p, label {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
-        h1, h3 {
-            color: #111111 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        
+        h1 {
+            color: #002f56 !important; /* Azul Marino Oficial UJAT */
+            font-weight: 700 !important;
+            font-size: 26px !important;
+            letter-spacing: -0.5px;
         }
-        /* Inputs estéticos */
+        
+        h3 {
+            color: #555555 !important;
+            font-weight: 500 !important;
+            font-size: 16px !important;
+        }
+        
+        /* Inputs estéticos estilo Notion (Bordes sutiles, fondo limpio) */
         input {
             color: #111111 !important;
-            background-color: #f8f9fa !important;
-            border: 1px solid #ced4da !important;
-            border-radius: 6px !important;
-        }
-        /* Botón azul corporativo */
-        div.stButton > button:first-child { 
-            background-color: #2eaadc !important; 
-            color: white !important; 
-            border-radius: 6px !important; 
-            border: none !important;
-            font-weight: bold !important;
-            width: 100% !important;
+            background-color: #f9f9fb !important;
+            border: 1px solid #e1e4e6 !important;
+            border-radius: 8px !important;
             padding: 10px !important;
+        }
+        input:focus {
+            border-color: #002f56 !important;
+            box-shadow: 0 0 0 2px rgba(0, 47, 86, 0.2) !important;
+        }
+        
+        /* Botón Principal: Azul Marino UJAT */
+        div.stButton > button:first-child { 
+            background-color: #002f56 !important; 
+            color: #ffffff !important; 
+            border-radius: 8px !important; 
+            border: none !important;
+            font-weight: 600 !important;
+            font-size: 15px !important;
+            width: 100% !important;
+            padding: 12px !important;
+            transition: background-color 0.2s ease;
+        }
+        div.stButton > button:first-child:hover {
+            background-color: #00467f !important;
+            color: #ffffff !important;
+        }
+        
+        /* Botones secundarios (Registrarse / Olvidé clave) como enlaces limpios */
+        div[data-testid="stHorizontalBlock"] div.stButton > button {
+            background-color: transparent !important;
+            color: #002f56 !important;
+            border: 1px solid #e1e4e6 !important;
+            font-weight: 500 !important;
+            font-size: 13px !important;
+            padding: 6px 12px !important;
+        }
+        div[data-testid="stHorizontalBlock"] div.stButton > button:hover {
+            background-color: #f4f5f6 !important;
+            border-color: #ced4da !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # Contenedor visual del Login centrado
-    col_izq, col_centro, col_der = st.columns([1, 1.5, 1])
+    # Centrado del Login en la pantalla
+    col_izq, col_centro, col_der = st.columns([1.1, 1.3, 1.1])
     
     with col_centro:
-        st.write("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
+        st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+        
+        # Renderizado Centrado del Logo Institucional de la UJAT
+        st.image(LOGO_UJAT_URL, width=140, use_container_width=False)
         
         # PANTALLA PRINCIPAL DE LOGIN
         if st.session_state.sub_pantalla_auth == "login":
-            st.markdown("<h1 style='text-align: center;'>🧠 Centro Psicológico</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #666;'>Unidad Chontalpa - UJAT</p>", unsafe_allow_html=True)
-            st.write("---")
+            st.markdown("<h1 style='text-align: center; margin-bottom: 2px;'>Centro Psicológico</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #666666; font-size: 14px; margin-top: 0px;'>División Académica de Ciencias y Tecnologías de la Información</p>", unsafe_allow_html=True)
+            st.write("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
             
             user_input = st.text_input("Usuario Corporativo:")
             pass_input = st.text_input("Contraseña:", type="password")
             
             st.write("<br>", unsafe_allow_html=True)
-            if st.button("Ingresar al Sistema"):
+            if st.button("Ingresar al Portal"):
                 if verificar_credenciales(user_input, pass_input):
                     st.session_state.autenticado = True
                     st.session_state.usuario_actual = user_input
-                    st.success(f"¡Bienvenida! Ingresando...")
+                    st.success(f"¡Bienvenida, comadre!")
                     st.rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos.")
             
-            # Enlaces discretos inferiores para cambiar de flujo
-            st.write("---")
+            st.write("<div style='margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;'></div>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("📝 Registrarse"):
@@ -118,12 +156,14 @@ if not st.session_state.autenticado:
 
         # FLUJO SECUNDARIO: REGISTRO DE NUEVO PERSONAL
         elif st.session_state.sub_pantalla_auth == "registro":
-            st.markdown("### 📝 Alta de Nuevo Terapeuta")
+            st.markdown("<h2 style='text-align: center;'>📝 Registro de Personal</h2>", unsafe_allow_html=True)
+            st.write("<br>", unsafe_allow_html=True)
             new_user = st.text_input("Definir nombre de usuario:")
             new_pass = st.text_input("Definir contraseña:", type="password")
             pregunta = st.selectbox("Pregunta de seguridad:", ["¿Unidad de origen?", "¿Clave de empleado?"])
             respuesta = st.text_input("Respuesta Secreta:")
             
+            st.write("<br>", unsafe_allow_html=True)
             if st.button("Confirmar Registro"):
                 if new_user and new_pass and respuesta:
                     exito, msg = registrar_usuario(new_user, new_pass, "Psicologo", pregunta, respuesta)
@@ -133,17 +173,19 @@ if not st.session_state.autenticado:
                         st.rerun()
                     else: st.error(msg)
             
-            if st.button("⬅️ Regresar al Login"):
+            if st.button("⬅️ Volver al Login"):
                 st.session_state.sub_pantalla_auth = "login"
                 st.rerun()
 
         # FLUJO SECUNDARIO: RECUPERACIÓN DE CUENTA
         elif st.session_state.sub_pantalla_auth == "recuperar":
-            st.markdown("### 🔑 Restablecer Acceso")
+            st.markdown("<h2 style='text-align: center;'>🔑 Restablecer Acceso</h2>", unsafe_allow_html=True)
+            st.write("<br>", unsafe_allow_html=True)
             rec_user = st.text_input("Usuario corporativo:")
             rec_resp = st.text_input("Respuesta secreta:")
             new_pass_reset = st.text_input("Nueva contraseña:", type="password")
             
+            st.write("<br>", unsafe_allow_html=True)
             if st.button("Reestablecer Contraseña"):
                 exito, msg = recuperar_clave_por_pregunta(rec_user, rec_resp, new_pass_reset)
                 if exito: 
@@ -152,15 +194,15 @@ if not st.session_state.autenticado:
                     st.rerun()
                 else: st.error(msg)
                 
-            if st.button("⬅️ Regresar al Login"):
+            if st.button("⬅️ Volver al Login"):
                 st.session_state.sub_pantalla_auth = "login"
                 st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ CLÍNICA INTERNA (Solo visible si ya iniciaste sesión)
+# FLUJO 2: INTERFAZ CLÍNICA INTERNA (Color de acento UJAT en botones)
 # -------------------------------------------------------------------------------------
 else:
-    # Inyección de CSS para la zona interna (Habilitando barra lateral de alto contraste)
+    # Estilo interno refinado
     st.markdown("""
         <style>
         .stApp { background-color: #ffffff; }
@@ -175,13 +217,13 @@ else:
             color: #111111 !important;
             font-weight: 500 !important;
         }
-        h1, h2, h3 { color: #000000 !important; }
+        h1, h2, h3 { color: #002f56 !important; font-family: -apple-system, sans-serif !important; }
         input, select, textarea { color: #111111 !important; background-color: #ffffff !important; }
-        div.stButton > button:first-child { background-color: #2eaadc !important; color: white !important; }
+        div.stButton > button:first-child { background-color: #002f56 !important; color: white !important; border-radius: 6px !important; }
         </style>
     """, unsafe_allow_html=True)
 
-    # Panel de Navegación Lateral Interno
+    # Panel de Navigation Lateral Interno
     st.sidebar.markdown("### 🗂️ Navegación")
     seccion = st.sidebar.radio(
         "Seleccione un módulo:", 

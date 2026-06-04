@@ -1,34 +1,20 @@
+=================================================================
+#           MÓDULO DE CONEXIÓN OPTIMIZADO (SQLITE): codconexion.py
 # =================================================================
-#                     MÓDULO DE CONEXIÓN: codconexion.py
-# =================================================================
-import psycopg2
-from psycopg2 import Error
+import sqlite3
 import streamlit as st
 
-# Configuración de base de datos (Usa variables de entorno en producción/despliegue)
-DB_HOST = st.secrets.get("DB_HOST", "localhost")
-DB_NAME = st.secrets.get("DB_NAME", "consultorio_db")
-DB_USER = st.secrets.get("DB_USER", "postgres")
-DB_PASS = st.secrets.get("DB_PASS", "12345")
-DB_PORT = st.secrets.get("DB_PORT", "5432")
-
 def conectar_db():
-    """Establece y devuelve una conexión a la base de datos PostgreSQL."""
+    """Establece y devuelve una conexión a la base de datos SQLite local en el servidor."""
     try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS,
-            port=DB_PORT
-        )
+        conn = sqlite3.connect("consultorio.db", check_same_thread=False)
         return conn
-    except Error as e:
-        st.error(f"Error de Conexión a la BD: No se pudo conectar a PostgreSQL. Detalle: {e}")
+    except Exception as e:
+        st.error(f"Error de Conexión: {e}")
         return None
 
 def crear_tablas_iniciales():
-    """Crea todas las tablas necesarias si no existen conforme al esquema del PDF."""
+    """Crea todas las tablas necesarias en SQLite para el consultorio de la UJAT."""
     conn = conectar_db()
     if conn is None:
         return
@@ -36,63 +22,65 @@ def crear_tablas_iniciales():
     try:
         cursor = conn.cursor()
         
-        # 1. Tabla de Usuarios (Psicólogos/Administradores)
+        # 1. Tabla de Usuarios
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                usuario VARCHAR(50) UNIQUE NOT NULL,
-                clave_hash VARCHAR(255) NOT NULL,
-                rol VARCHAR(20) DEFAULT 'psicologo',
-                pregunta_secreta VARCHAR(255) NOT NULL,
-                respuesta_secreta_hash VARCHAR(255) NOT NULL
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT UNIQUE NOT NULL,
+                clave_hash TEXT NOT NULL,
+                rol TEXT DEFAULT 'psicologo',
+                pregunta_secreta TEXT NOT NULL,
+                respuesta_secreta_hash TEXT NOT NULL
             );
         """)
         
-        # 2. Tabla de Expedientes (Estudiantes de la UJAT con estilo Notion)
+        # 2. Tabla de Expedientes (Alumnos DACYTI)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expedientes (
-                id SERIAL PRIMARY KEY,
-                matricula VARCHAR(20) UNIQUE NOT NULL,
-                nombre VARCHAR(100) NOT NULL,
-                genero VARCHAR(20) NOT NULL,
-                carrera VARCHAR(100) NOT NULL,
-                semestre VARCHAR(20) NOT NULL,
-                telefono VARCHAR(20),
-                correo VARCHAR(100),
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                matricula TEXT UNIQUE NOT NULL,
+                nombre TEXT NOT NULL,
+                genero TEXT NOT NULL,
+                carrera TEXT NOT NULL,
+                semestre TEXT NOT NULL,
+                telefono TEXT,
+                correo TEXT,
                 observaciones TEXT,
-                ocupacion VARCHAR(100) DEFAULT '',
-                etiquetas TEXT DEFAULT '' -- Para emular las etiquetas dinámicas de Notion (separadas por comas)
+                ocupacion TEXT DEFAULT '',
+                etiquetas TEXT DEFAULT ''
             );
         """)
         
-        # 3. Tabla de Citas (Agenda cronológica)
+        # 3. Tabla de Citas
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
-                id SERIAL PRIMARY KEY,
-                expediente_id INT REFERENCES expedientes(id) ON DELETE CASCADE,
-                fecha_hora TIMESTAMP NOT NULL,
-                estado VARCHAR(20) DEFAULT 'Pendiente', -- 'Pendiente', 'Completada', 'Cancelada'
-                motivo TEXT
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                expediente_id INTEGER,
+                fecha_hora TEXT NOT NULL,
+                estado TEXT DEFAULT 'Pendiente',
+                motivo TEXT,
+                FOREIGN KEY (expediente_id) REFERENCES expedientes(id) ON DELETE CASCADE
             );
         """)
         
-        # 4. Tabla de Notas de Consulta (Datos clínicos del paciente)
+        # 4. Tabla de Notas de Consulta
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS notas_consulta (
-                id SERIAL PRIMARY KEY,
-                cita_id INT REFERENCES citas(id) ON DELETE CASCADE,
-                expediente_id INT REFERENCES expedientes(id) ON DELETE CASCADE,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cita_id INTEGER,
+                expediente_id INTEGER,
+                fecha TEXT DEFAULT CURRENT_TIMESTAMP,
                 vivencias_clave TEXT,
                 notas_evolucion TEXT,
-                medicamento_psiquiatrico TEXT
+                medicamento_psiquiatrico TEXT,
+                FOREIGN KEY (cita_id) REFERENCES citas(id) ON DELETE CASCADE,
+                FOREIGN KEY (expediente_id) REFERENCES expedientes(id) ON DELETE CASCADE
             );
         """)
         
         conn.commit()
-    except Error as e:
-        st.error(f"Error al estructurar las tablas iniciales: {e}")
-        conn.rollback()
+    except Exception as e:
+        st.error(f"Error al estructurar las tablas: {e}")
     finally:
         if conn:
             conn.close()

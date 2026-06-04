@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (VERSIÓN WEB STREAMLIT)
+#           APLICACIÓN PRINCIPAL: codroot.py (LOG-IN EXCLUSIVO V1)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -8,61 +8,13 @@ from codconexion import crear_tablas_iniciales, conectar_db
 from codauth import verificar_credenciales, inicializar_usuario_admin, registrar_usuario, recuperar_clave_por_pregunta
 from codestadisticas import renderizar_reportes_direccion, obtener_dataframe
 
-# Configuración Inicial Estilo Notion
+# Configuración Inicial Estilo Web Profesional
 st.set_page_config(
     page_title="Centro Psicológico UJAT",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# -------------------------------------------------------------------------------------
-# CONFIGURACIÓN DE ESTILOS LIMPIOS Y SEGUROS (EVITA RECUADROS NEGROS Y TÍTULOS INVISIBLES)
-# -------------------------------------------------------------------------------------
-st.markdown("""
-    <style>
-    /* 1. Forzar color de fondo blanco en toda la aplicación de forma segura */
-    .stApp {
-        background-color: #ffffff !important;
-    }
-    
-    /* 2. Forzar que todos los títulos sean visibles y de color negro absoluto */
-    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { 
-        color: #000000 !important; 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-    }
-    
-    /* 3. BARRA LATERAL: Fondo gris claro y limpio sin tocar los inputs */
-    [data-testid="stSidebar"] {
-        background-color: #f4f5f6 !important;
-        border-right: 1px solid #e0e0e0 !important;
-    }
-    
-    /* 4. Apuntar exclusivamente a los textos del menú lateral para que sean legibles */
-    [data-testid="stSidebar"] .stMarkdown p,
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] p,
-    [data-testid="stSidebar"] div[role="radiogroup"] label p {
-        color: #111111 !important;
-        font-weight: 500 !important;
-    }
-    
-    /* 5. Asegurar que los inputs no se alteren con fondos oscuros */
-    input, select, textarea {
-        color: #111111 !important;
-        background-color: #ffffff !important;
-    }
-
-    /* 6. Botón de acción principal en color azul corporativo */
-    div.stButton > button:first-child { 
-        background-color: #2eaadc !important; 
-        color: white !important; 
-        border-radius: 6px !important; 
-        border: none !important;
-        font-weight: bold !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # Inicializar Base de Datos y Admin
 crear_tablas_iniciales()
@@ -72,51 +24,164 @@ if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = ""
+if "sub_pantalla_auth" not in st.session_state:
+    st.session_state.sub_pantalla_auth = "login"
 
-# PANTALLA DE LOG-IN
+# -------------------------------------------------------------------------------------
+# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA (Cero barras laterales, cero distracciones)
+# -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
-    # Títulos encerrados en etiquetas HTML directas para asegurar color negro absoluto
-    st.markdown("<h1 style='color: #000000 !important;'>🧠 Centro Psicológico Unidad Chontalpa - UJAT</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color: #333333 !important;'>Sistema Integral de Gestión de Citas y Expedientes</h3>", unsafe_allow_html=True)
+    # Inyección de CSS para OCULTAR por completo la barra de navegación lateral y centrar el Login
+    st.markdown("""
+        <style>
+        /* Ocultar barra lateral en el Login */
+        [data-testid="stSidebar"] {
+            display: none !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            display: none !important;
+        }
+        /* Fondo blanco e interfaz centrada tipo red social */
+        .stApp {
+            background-color: #ffffff !important;
+        }
+        .login-box {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 450px;
+            margin: 80px auto;
+            text-align: center;
+            border: 1px solid #e1e4e6;
+        }
+        h1, h3 {
+            color: #111111 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        }
+        /* Inputs estéticos */
+        input {
+            color: #111111 !important;
+            background-color: #f8f9fa !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 6px !important;
+        }
+        /* Botón azul corporativo */
+        div.stButton > button:first-child { 
+            background-color: #2eaadc !important; 
+            color: white !important; 
+            border-radius: 6px !important; 
+            border: none !important;
+            font-weight: bold !important;
+            width: 100% !important;
+            padding: 10px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Contenedor visual del Login centrado
+    col_izq, col_centro, col_der = st.columns([1, 1.5, 1])
     
-    pestana_login, pestana_registro, pestana_recuperar = st.tabs(["🔒 Iniciar Sesión", "📝 Registrar Personal", "🔑 Recuperar Cuenta"])
-    
-    with pestana_login:
-        user_input = st.text_input("Usuario Corporativo (Prueba: psicologa.sara):")
-        pass_input = st.text_input("Contraseña (Prueba: admin123):", type="password")
-        if st.button("Ingresar al Portal"):
-            if verificar_credenciales(user_input, pass_input):
-                st.session_state.autenticado = True
-                st.session_state.usuario_actual = user_input
-                st.success(f"¡Bienvenida! Ingresando como {user_input}")
+    with col_centro:
+        st.write("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
+        
+        # PANTALLA PRINCIPAL DE LOGIN
+        if st.session_state.sub_pantalla_auth == "login":
+            st.markdown("<h1 style='text-align: center;'>🧠 Centro Psicológico</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #666;'>Unidad Chontalpa - UJAT</p>", unsafe_allow_html=True)
+            st.write("---")
+            
+            user_input = st.text_input("Usuario Corporativo:")
+            pass_input = st.text_input("Contraseña:", type="password")
+            
+            st.write("<br>", unsafe_allow_html=True)
+            if st.button("Ingresar al Sistema"):
+                if verificar_credenciales(user_input, pass_input):
+                    st.session_state.autenticado = True
+                    st.session_state.usuario_actual = user_input
+                    st.success(f"¡Bienvenida! Ingresando...")
+                    st.rerun()
+                else:
+                    st.error("Usuario o contraseña incorrectos.")
+            
+            # Enlaces discretos inferiores para cambiar de flujo
+            st.write("---")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("📝 Registrarse"):
+                    st.session_state.sub_pantalla_auth = "registro"
+                    st.rerun()
+            with c2:
+                if st.button("🔑 Olvidé mi clave"):
+                    st.session_state.sub_pantalla_auth = "recuperar"
+                    st.rerun()
+
+        # FLUJO SECUNDARIO: REGISTRO DE NUEVO PERSONAL
+        elif st.session_state.sub_pantalla_auth == "registro":
+            st.markdown("### 📝 Alta de Nuevo Terapeuta")
+            new_user = st.text_input("Definir nombre de usuario:")
+            new_pass = st.text_input("Definir contraseña:", type="password")
+            pregunta = st.selectbox("Pregunta de seguridad:", ["¿Unidad de origen?", "¿Clave de empleado?"])
+            respuesta = st.text_input("Respuesta Secreta:")
+            
+            if st.button("Confirmar Registro"):
+                if new_user and new_pass and respuesta:
+                    exito, msg = registrar_usuario(new_user, new_pass, "Psicologo", pregunta, respuesta)
+                    if exito: 
+                        st.success(msg)
+                        st.session_state.sub_pantalla_auth = "login"
+                        st.rerun()
+                    else: st.error(msg)
+            
+            if st.button("⬅️ Regresar al Login"):
+                st.session_state.sub_pantalla_auth = "login"
                 st.rerun()
-            else:
-                st.error("Credenciales incorrectas.")
-                
-    with pestana_registro:
-        st.markdown("<h3 style='color: #000000 !important;'>Alta de nuevo Terapeuta</h3>", unsafe_allow_html=True)
-        new_user = st.text_input("Definir nombre de usuario:")
-        new_pass = st.text_input("Definir contraseña:", type="password")
-        pregunta = st.selectbox("Pregunta de seguridad:", ["¿Unidad de origen?", "¿Clave de empleado?"])
-        respuesta = st.text_input("Respuesta Secreta:")
-        if st.button("Confirmar Registro"):
-            if new_user and new_pass and respuesta:
-                exito, msg = registrar_usuario(new_user, new_pass, "Psicologo", pregunta, respuesta)
-                if exito: st.success(msg)
+
+        # FLUJO SECUNDARIO: RECUPERACIÓN DE CUENTA
+        elif st.session_state.sub_pantalla_auth == "recuperar":
+            st.markdown("### 🔑 Restablecer Acceso")
+            rec_user = st.text_input("Usuario corporativo:")
+            rec_resp = st.text_input("Respuesta secreta:")
+            new_pass_reset = st.text_input("Nueva contraseña:", type="password")
+            
+            if st.button("Reestablecer Contraseña"):
+                exito, msg = recuperar_clave_por_pregunta(rec_user, rec_resp, new_pass_reset)
+                if exito: 
+                    st.success(msg)
+                    st.session_state.sub_pantalla_auth = "login"
+                    st.rerun()
                 else: st.error(msg)
                 
-    with pestana_recuperar:
-        st.markdown("<h3 style='color: #000000 !important;'>Restablecimiento de Credenciales</h3>", unsafe_allow_html=True)
-        rec_user = st.text_input("Usuario corporativo:")
-        rec_resp = st.text_input("Respuesta secreta:")
-        new_pass_reset = st.text_input("Nueva contraseña:", type="password")
-        if st.button("Reestablecer Acceso"):
-            exito, msg = recuperar_clave_por_pregunta(rec_user, rec_resp, new_pass_reset)
-            if exito: st.success(msg)
-            else: st.error(msg)
+            if st.button("⬅️ Regresar al Login"):
+                st.session_state.sub_pantalla_auth = "login"
+                st.rerun()
 
-# INTERFAZ WEB INTERNA (LOGUEADO)
+# -------------------------------------------------------------------------------------
+# FLUJO 2: INTERFAZ CLÍNICA INTERNA (Solo visible si ya iniciaste sesión)
+# -------------------------------------------------------------------------------------
 else:
+    # Inyección de CSS para la zona interna (Habilitando barra lateral de alto contraste)
+    st.markdown("""
+        <style>
+        .stApp { background-color: #ffffff; }
+        [data-testid="stSidebar"] {
+            background-color: #f4f5f6 !important;
+            border-right: 1px solid #e0e0e0 !important;
+        }
+        [data-testid="stSidebar"] .stMarkdown p,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] p,
+        [data-testid="stSidebar"] div[role="radiogroup"] label p {
+            color: #111111 !important;
+            font-weight: 500 !important;
+        }
+        h1, h2, h3 { color: #000000 !important; }
+        input, select, textarea { color: #111111 !important; background-color: #ffffff !important; }
+        div.stButton > button:first-child { background-color: #2eaadc !important; color: white !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Panel de Navegación Lateral Interno
     st.sidebar.markdown("### 🗂️ Navegación")
     seccion = st.sidebar.radio(
         "Seleccione un módulo:", 
@@ -136,8 +201,9 @@ else:
         "Ingeniería en Informática Administrativa"
     ]
 
+    # --- CONTENIDO DE LOS MÓDULOS ---
     if seccion == "📋 Expedientes Electrónicos":
-        st.markdown("<h1 style='color: #000000 !important;'>📋 Repositorio de Expedientes Electrónicos</h1>", unsafe_allow_html=True)
+        st.markdown("<h1>📋 Repositorio de Expedientes Electrónicos</h1>", unsafe_allow_html=True)
         
         busqueda_col1, busqueda_col2 = st.columns([2, 1])
         with busqueda_col1:
@@ -194,11 +260,11 @@ else:
                         st.warning("Matrícula y Nombre obligatorios.")
 
     elif seccion == "📅 Agenda de Citas":
-        st.markdown("<h1 style='color: #000000 !important;'>📅 Agenda de Citas del Consultorio</h1>", unsafe_allow_html=True)
+        st.markdown("<h1>📅 Agenda de Citas del Consultorio</h1>", unsafe_allow_html=True)
         col_1, col_2 = st.columns([2, 1])
         
         with col_1:
-            st.markdown("<h3 style='color: #000000 !important;'>Citas Registradas</h3>", unsafe_allow_html=True)
+            st.markdown("<h3>Citas Registradas</h3>", unsafe_allow_html=True)
             df_citas_completas = obtener_dataframe("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
                 FROM citas c JOIN expedientes e ON c.expediente_id = e.id 
@@ -210,7 +276,7 @@ else:
                 st.info("No hay citas agendadas.")
                 
         with col_2:
-            st.markdown("<h3 style='color: #000000 !important;'>Agendar Nueva Cita</h3>", unsafe_allow_html=True)
+            st.markdown("<h3>Agendar Nueva Cita</h3>", unsafe_allow_html=True)
             df_pacientes = obtener_dataframe("SELECT id, nombre, matricula FROM expedientes")
             if not df_pacientes.empty:
                 lista_pacientes = {f"{row['nombre']} ({row['matricula']})": row['id'] for _, row in df_pacientes.iterrows()}

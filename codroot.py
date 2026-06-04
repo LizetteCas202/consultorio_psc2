@@ -51,7 +51,7 @@ def limpiar_formulario_expediente():
     st.session_state.form_obs = ""
 
 # URL Alternativa del Escudo UJAT
-LOGO_UJAT_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg/800px-Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg.png"
+LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png_seeklogo-233582.png"
 
 # -------------------------------------------------------------------------------------
 # FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA

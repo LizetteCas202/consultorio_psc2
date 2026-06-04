@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (FIX EXPANDER V4)
+#           APLICACIÓN PRINCIPAL: codroot.py (FIX BOTONES Y LIMPIEZA)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -27,7 +27,30 @@ if "usuario_actual" not in st.session_state:
 if "sub_pantalla_auth" not in st.session_state:
     st.session_state.sub_pantalla_auth = "login"
 
-# URL Alternativa Estable del Escudo UJAT
+# Inicializar variables del formulario en session_state para la limpieza automática
+if "form_mat" not in st.session_state: st.session_state.form_mat = ""
+if "form_nom" not in st.session_state: st.session_state.form_nom = ""
+if "form_gen" not in st.session_state: st.session_state.form_gen = "Masculino"
+if "form_car" not in st.session_state: st.session_state.form_car = "Licenciatura en Tecnologías de la Información"
+if "form_sem" not in st.session_state: st.session_state.form_sem = "1ro"
+if "form_tel" not in st.session_state: st.session_state.form_tel = ""
+if "form_cor" not in st.session_state: st.session_state.form_cor = ""
+if "form_tags" not in st.session_state: st.session_state.form_tags = ""
+if "form_obs" not in st.session_state: st.session_state.form_obs = ""
+
+# Función para vaciar los campos del formulario tras un guardado exitoso
+def limpiar_formulario_expediente():
+    st.session_state.form_mat = ""
+    st.session_state.form_nom = ""
+    st.session_state.form_gen = "Masculino"
+    st.session_state.form_car = "Licenciatura en Tecnologías de la Información"
+    st.session_state.form_sem = "1ro"
+    st.session_state.form_tel = ""
+    st.session_state.form_cor = ""
+    st.session_state.form_tags = ""
+    st.session_state.form_obs = ""
+
+# URL Alternativa del Escudo UJAT
 LOGO_UJAT_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg/800px-Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg.png"
 
 # -------------------------------------------------------------------------------------
@@ -54,7 +77,6 @@ if not st.session_state.autenticado:
             color: #002f56 !important;
             font-weight: 700 !important;
             font-size: 28px !important;
-            letter-spacing: -0.5px;
         }
         
         p.subtitulo-ujat {
@@ -70,18 +92,19 @@ if not st.session_state.autenticado:
             border-radius: 8px !important;
         }
         
+        /* FIX BOTÓN LOG-IN CONSTANTE */
         div.stButton > button:first-child { 
             background-color: #002f56 !important; 
             color: #ffffff !important; 
             border-radius: 8px !important; 
             font-weight: 600 !important;
             padding: 12px !important;
+            border: 1px solid #002f56 !important;
         }
-        
-        .logo-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 15px;
+        div.stButton > button:first-child:hover {
+            background-color: #e1e4e6 !important;
+            color: #002f56 !important;
+            border: 1px solid #002f56 !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -89,7 +112,7 @@ if not st.session_state.autenticado:
     col_izq, col_centro, col_der = st.columns([1.1, 1.3, 1.1])
     with col_centro:
         st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
-        st.markdown(f'<div class="logo-container"><img src="{LOGO_UJAT_URL}" width="120"></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display: flex; justify-content: center; margin-bottom: 15px;"><img src="{LOGO_UJAT_URL}" width="120"></div>', unsafe_allow_html=True)
         
         if st.session_state.sub_pantalla_auth == "login":
             st.markdown("<h1 style='text-align: center;'>Centro Psicológico</h1>", unsafe_allow_html=True)
@@ -140,7 +163,7 @@ if not st.session_state.autenticado:
             if st.button("⬅️ Volver al Login"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ CLÍNICA INTERNA (REPARACIÓN DE VISIBILIDAD DE EXPANDER)
+# FLUJO 2: INTERFAZ CLÍNICA INTERNA (FIX SUPREMO DE VISIBILIDAD DE BOTONES EN HOVER)
 # -------------------------------------------------------------------------------------
 else:
     st.markdown("""
@@ -151,31 +174,42 @@ else:
         }
         
         /* Forzar visibilidad en textos y etiquetas internas */
-        div[data-testid="stWidgetLabel"] p, 
-        label, 
-        .stMarkdown p, 
-        span[data-testid="stWidgetLabel"] p {
+        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, span[data-testid="stWidgetLabel"] p {
             color: #37352f !important;
             font-weight: 500 !important;
         }
         
-        /* SOLUCIÓN TOTAL AL EXPANDER: Forzar color oscuro en el título del desplegable */
-        .stDetails summary, 
-        div[data-testid="stExpander"] details summary p, 
-        div[data-testid="stExpander"] p {
+        /* Título del Expander */
+        .stDetails summary, div[data-testid="stExpander"] details summary p, div[data-testid="stExpander"] p {
             color: #37352f !important;
             font-weight: 600 !important;
         }
         
-        div[data-testid="stNotification"] p {
-            color: #2b2b2b !important;
-            font-weight: 500 !important;
-        }
-        
         h1, h2, h3 { 
             color: #002f56 !important; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             font-weight: 700 !important;
+        }
+        
+        /* --- CORE FIX: CONTROL TOTAL DE BOTONES (NORMAL VS HOVER) --- */
+        /* Aplica a botones normales, de formularios y de envío */
+        div.stButton > button, 
+        div[data-testid="stForm"] div.stButton > button,
+        .stButton button { 
+            background-color: #002f56 !important; 
+            color: #ffffff !important; 
+            border-radius: 6px !important; 
+            font-weight: 600 !important;
+            border: 1px solid #002f56 !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        
+        /* Al pasar el cursor, cambia el fondo y el texto cambia a azul oscuro de forma segura */
+        div.stButton > button:hover, 
+        div[data-testid="stForm"] div.stButton > button:hover,
+        .stButton button:hover {
+            background-color: #e1e4e6 !important; 
+            color: #002f56 !important; 
+            border: 1px solid #002f56 !important;
         }
         
         /* Barra lateral */
@@ -183,16 +217,12 @@ else:
             background-color: #f4f5f6 !important;
             border-right: 1px solid #e0e0e0 !important;
         }
-        
         [data-testid="stSidebar"] h3 {
             color: #002f56 !important;
             font-size: 18px !important;
-            margin-bottom: 10px !important;
         }
-        
         [data-testid="stSidebar"] div[role="radiogroup"] label p {
             color: #002f56 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             font-weight: 600 !important;
             font-size: 14px !important;
         }
@@ -201,12 +231,6 @@ else:
             color: #111111 !important; 
             background-color: #ffffff !important; 
             border: 1px solid #cccccc !important;
-        }
-        
-        div.stButton > button:first-child { 
-            background-color: #002f56 !important; 
-            color: white !important; 
-            border-radius: 6px !important; 
         }
         </style>
     """, unsafe_allow_html=True)
@@ -257,38 +281,41 @@ else:
         else:
             st.info("No se encontraron registros clínicos.")
             
-        # AQUÍ ESTÁ EL EXPANDER CORREGIDO EN COLOR
         with st.expander("➕ Crear Nuevo Expediente Clínico"):
-            with st.form("form_expediente"):
-                mat = st.text_input("Matrícula Institucional:")
-                nom = st.text_input("Nombre Completo:")
-                gen = st.selectbox("Género:", ["Masculino", "Femenino", "No Especificado"])
-                car = st.selectbox("Carrera:", CARRERAS_UJAT)
-                sem = st.selectbox("Semestre:", options=["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
-                tel = st.text_input("Teléfono:")
-                cor = st.text_input("Correo:")
-                tags = st.text_input("Etiquetas (Separadas por comas):")
-                obs = st.text_area("Observaciones Clínicas:")
-                
-                if st.form_submit_button("Guardar Expediente"):
-                    if mat and nom:
-                        conn = conectar_db()
-                        if conn:
-                            try:
-                                cursor = conn.cursor()
-                                cursor.execute("""
-                                    INSERT INTO expedientes (matricula, nombre, genero, carrera, semestre, telefono, correo, observaciones, etiquetas)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (mat, nom, gen, car, sem, tel, cor, obs, tags))
-                                conn.commit()
-                                st.success("¡Expediente guardado!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error: {e}")
-                            finally:
-                                conn.close()
-                    else:
-                        st.warning("Matrícula y Nombre obligatorios.")
+            # Usamos inputs enlazados al session_state para limpiarlos automáticamente al guardar
+            mat = st.text_input("Matrícula Institucional:", key="form_mat")
+            nom = st.text_input("Nombre Completo:", key="form_nom")
+            gen = st.selectbox("Género:", ["Masculino", "Femenino", "No Especificado"], key="form_gen")
+            car = st.selectbox("Carrera:", CARRERAS_UJAT, key="form_car")
+            sem = st.selectbox("Semestre:", options=["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="form_sem")
+            tel = st.text_input("Teléfono:", key="form_tel")
+            cor = st.text_input("Correo:", key="form_cor")
+            tags = st.text_input("Etiquetas (Separadas por comas):", key="form_tags")
+            obs = st.text_area("Observaciones Clínicas:", key="form_obs")
+            
+            # Botón con contraste perfecto y callback de limpieza automática
+            if st.button("Guardar Expediente"):
+                if mat and nom:
+                    conn = conectar_db()
+                    if conn:
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                INSERT INTO expedientes (matricula, nombre, genero, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (mat, nom, gen, car, sem, tel, cor, obs, tags))
+                            conn.commit()
+                            
+                            # Ejecutar limpieza de variables
+                            limpiar_formulario_expediente()
+                            st.success("¡Expediente guardado exitosamente!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al guardar: {e}")
+                        finally:
+                            conn.close()
+                else:
+                    st.warning("Matrícula y Nombre obligatorios.")
 
     elif seccion == "📅 Agenda de Citas":
         st.markdown("<h1>📅 Agenda de Citas del Consultorio</h1>", unsafe_allow_html=True)

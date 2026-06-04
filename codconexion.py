@@ -5,7 +5,7 @@ import sqlite3
 import streamlit as st
 
 def conectar_db():
-    """Establece y devuelve una conexión a la base de datos SQLite local en el servidor."""
+    """Establece y devuelve una conexión a la base de datos SQLite."""
     try:
         conn = sqlite3.connect("consultorio.db", check_same_thread=False)
         return conn
@@ -14,7 +14,7 @@ def conectar_db():
         return None
 
 def crear_tablas_iniciales():
-    """Crea todas las tablas necesarias en SQLite para el consultorio de la UJAT."""
+    """Crea todas las tablas necesarias en SQLite con sintaxis correcta."""
     conn = conectar_db()
     if conn is None:
         return
@@ -51,7 +51,7 @@ def crear_tablas_iniciales():
             );
         """)
         
-        # 3. Tabla de Citas
+        # 3. Tabla de Citas (Sintaxis corregida para SQLite)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,7 +63,7 @@ def crear_tablas_iniciales():
             );
         """)
         
-        # 4. Tabla de Notas de Consulta
+        # 4. Tabla de Notas de Consulta (Sintaxis corregida para SQLite)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS notas_consulta (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

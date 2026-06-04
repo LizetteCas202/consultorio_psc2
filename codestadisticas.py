@@ -3,27 +3,25 @@
 # =================================================================
 import pandas as pd
 import streamlit as st
-from codconexion import conectar_db
+import sqlite3
 
 def obtener_dataframe(query, params=None):
-    """Helper para transformar consultas SQL directas en DataFrames de Pandas de bajo peso."""
-    conn = conectar_db()
-    if not conn:
-        return pd.DataFrame()
+    """Genera un DataFrame limpio desde SQLite."""
     try:
-        df = pd.read_sql_query(query, conn, params=params)
+        conn = sqlite3.connect("consultorio.db")
+        if params:
+            df = pd.read_sql_query(query, conn, params=params)
+        else:
+            df = pd.read_sql_query(query, conn)
+        conn.close()
         return df
     except Exception as e:
-        st.error(f"Error procesando analíticas: {e}")
+        st.error(f"Error analítico: {e}")
         return pd.DataFrame()
-    finally:
-        if conn:
-            conn.close()
 
 def renderizar_reportes_direccion():
     st.markdown("### 📊 Panel de Control e Informe de Dirección")
     
-    # 1. KPIs Rápidos
     df_citas = obtener_dataframe("SELECT estado FROM citas")
     df_exp = obtener_dataframe("SELECT genero, carrera FROM expedientes")
     
@@ -34,27 +32,20 @@ def renderizar_reportes_direccion():
     
     st.write("---")
     
-    # 2. Distribución de Género (Gráfico de Pastel)
-    st.subheader("💡 Demografía por Género")
-    if not df_exp.empty and 'genero' in df_exp.columns:
-        conteo_genero = df_exp['genero'].value_counts()
-        st.pie_chart = st.dataframe(conteo_genero) # Vista minimalista de datos
-        
-        # Gráfico visual ligero
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(figsize=(5, 3))
-        fig.patch.set_facecolor('#0e1117') # Match tema oscuro de Streamlit
-        ax.set_facecolor('#0e1117')
-        
-        colors = ['#FF9F43', '#00D1B2', '#4B4B4B']
-        ax.pie(conteo_genero.values, labels=conteo_genero.index, autopct='%1.1f%%', startangle=90, textprops={'color':"w"}, colors=colors[:len(conteo_genero)])
-        ax.axis('equal')
-        st.pyplot(fig)
-    else:
-        st.info("Sin datos demográficos suficientes.")
+    col_izq, col_der = st.columns(2)
+    
+    with col_izq:
+        st.subheader("💡 Demografía por Género")
+        if not df_exp.empty and 'genero' in df_exp.columns:
+            conteo_genero = df_exp['genero'].value_counts()
+            st.dataframe(conteo_genero, use_container_width=True)
+        else:
+            st.info("Sin datos demográficos registrados.")
 
-    # 3. Distribución por Carrera de la DACYTI
-    st.subheader("🏫 Casos de Atención por Carrera")
-    if not df_exp.empty and 'carrera' in df_exp.columns:
-        conteo_carrera = df_exp['carrera'].value_counts()
-        st.bar_chart(conteo_carrera)
+    with col_der:
+        st.subheader("🏫 Casos por Carrera (DACYTI)")
+        if not df_exp.empty and 'carrera' in df_exp.columns:
+            conteo_carrera = df_exp['carrera'].value_counts()
+            st.bar_chart(conteo_carrera)
+        else:
+            st.info("Sin datos de carreras registrados.")

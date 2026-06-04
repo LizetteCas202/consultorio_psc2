@@ -8,7 +8,6 @@ from codconexion import crear_tablas_iniciales, conectar_db
 from codauth import verificar_credenciales, inicializar_usuario_admin, registrar_usuario, recuperar_clave_por_pregunta
 from codestadisticas import renderizar_reportes_direccion, obtener_dataframe
 
-# Configuración Inicial Estilo Notion
 st.set_page_config(
     page_title="Centro Psicológico UJAT",
     page_icon="🧠",
@@ -16,7 +15,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilo minimalista limpio
 st.markdown("""
     <style>
     .main { background-color: #fafafa; color: #333333; }
@@ -34,7 +32,6 @@ if "autenticado" not in st.session_state:
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = ""
 
-# PANTALLA DE LOG-IN
 if not st.session_state.autenticado:
     st.title("🧠 Centro Psicológico Unidad Chontalpa - UJAT")
     st.subheader("Sistema Integral de Gestión de Citas y Expedientes")
@@ -75,7 +72,6 @@ if not st.session_state.autenticado:
             if exito: st.success(msg)
             else: st.error(msg)
 
-# INTERFAZ WEB INTERNA
 else:
     st.sidebar.title("🗂️ Navegación")
     seccion = st.sidebar.radio("Ir a:", ["📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
@@ -124,7 +120,7 @@ else:
                 nom = st.text_input("Nombre Completo:")
                 gen = st.selectbox("Género:", ["Masculino", "Femenino", "No Especificado"])
                 car = st.selectbox("Carrera:", CARRERAS_UJAT)
-                sem = st.select_slider("Semestre:", options=["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
+                sem = st.selectbox("Semestre:", options=["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                 tel = st.text_input("Teléfono:")
                 cor = st.text_input("Correo:")
                 tags = st.text_input("Etiquetas (Separadas por comas):")

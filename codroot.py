@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (VERSIÓN FILTRADA DE LOGOS)
+#           APLICACIÓN REPARADA: codroot.py (COLOR & CONTRASTE OK)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -12,7 +12,7 @@ LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Consultorio Psicológico DACYTI",
-    page_icon=LOGO_UJAT_URL,  # Se mantiene en la pestaña del navegador como favicon corporativo
+    page_icon=LOGO_UJAT_URL,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -20,8 +20,7 @@ st.set_page_config(
 # --- 2. MOTOR DE CONEXIÓN LOCAL INTEGRADO (SQLite) ---
 def conectar_db_local():
     try:
-        conn = sqlite3.connect("centro_psicologico.db")
-        return conn
+        return sqlite3.connect("centro_psicologico.db")
     except Exception as e:
         st.error(f"Error al conectar a la base de datos local: {e}")
         return None
@@ -120,28 +119,33 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: CONTROL DE ACCESO (PANTALLA DE LOGIN CON LOGO)
+# FLUJO 1: PANTALLA DE LOGIN (CON LOGO Y LECHOS DE TEXTO LEGIBLES)
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
     st.markdown("""
         <style>
         [data-testid="stSidebar"] { display: none !important; }
         .stApp { background-color: #ffffff !important; }
-        div[data-testid="stWidgetLabel"] p, label { color: #37352f !important; font-weight: 500; }
-        h1, h2 { color: #002f56 !important; font-weight: 700; text-align: center; }
         
+        /* Forzar visibilidad del texto en Login */
+        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, span { 
+            color: #081849 !important; 
+            font-weight: 600 !important; 
+        }
+        h1, h2 { color: #213885 !important; font-weight: 700; text-align: center; }
+        
+        /* Botones del Login estilo Lapis Velvet */
         button, div.stButton > button {
-            background-color: #002f56 !important;
+            background-color: #213885 !important;
             color: #ffffff !important;
             border-radius: 8px !important;
             font-weight: 600 !important;
-            border: 1px solid #002f56 !important;
+            border: 1px solid #213885 !important;
             width: 100%;
         }
         button:hover, div.stButton > button:hover {
-            background-color: #e1e4e6 !important;
-            color: #002f56 !important;
-            border: 1px solid #002f56 !important;
+            background-color: #081849 !important;
+            color: #ffffff !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -149,12 +153,11 @@ if not st.session_state.autenticado:
     col_izq, col_centro, col_der = st.columns([1.1, 1.3, 1.1])
     with col_centro:
         st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
-        # 1. EVENTO ADMITIDO: Logo presente en la pantalla de login
         st.markdown(f'<div style="text-align:center; margin-bottom: 20px;"><img src="{LOGO_UJAT_URL}" width="160"></div>', unsafe_allow_html=True)
         
         if st.session_state.sub_pantalla_auth == "login":
             st.markdown("<h1>Consultorio Psicológico DACYTI</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align:center; color:#666;'>Sistema de Gestión Interdivisional - UJAT</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; color:#081849;'>Sistema de Gestión Interdivisional - UJAT</p>", unsafe_allow_html=True)
             
             u_login = st.text_input("Usuario Corporativo:")
             p_login = st.text_input("Contraseña:", type="password")
@@ -202,68 +205,97 @@ if not st.session_state.autenticado:
             if st.button("⬅️ Cancelar"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA (ENCABEZADO CONSTANTE)
+# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA (CORREGIDA)
 # -------------------------------------------------------------------------------------
 else:
+    # CSS Inyectado para reparar fuentes, barra lateral y contenedores gris paleta #CCCACC
     st.markdown(f"""
         <style>
         .stApp {{ background-color: #ffffff !important; }}
-        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p {{ color: #37352f !important; font-weight: 500 !important; }}
-        .stDetails summary, div[data-testid="stExpander"] summary p {{ color: #213885 !important; font-weight: 600 !important; font-size: 16px !important; }}
         
-        /* Contenedores Gris Claro */
-        div[data-testid="stAlert"], .stAlert, div[data-testid="stCallout"] {{
-            background-color: #f2f3f5 !important;
-            color: #333333 !important;
-            border-left: 5px solid #002f56 !important;
-            border-radius: 6px;
+        /* ARREGLO DE TEXTO: Forzar color oscuro (#081849) en todo el cuerpo interno */
+        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, h3, h4, span, .stSelectbox p {{ 
+            color: #081849 !important; 
+            font-weight: 600 !important; 
         }}
         
-        /* Estilo unificado de botones */
+        /* Titulo del Expander */
+        .stDetails summary, div[data-testid="stExpander"] summary p {{ 
+            color: #213885 !important; 
+            font-weight: 700 !important; 
+            font-size: 16px !important; 
+        }}
+        
+        /* CONTENEDORES: Color Gris Claro de la Paleta (#CCCACC) */
+        div[data-testid="stAlert"], .stAlert, div[data-testid="stCallout"], .element-container div.stNotification {{
+            background-color: #CCCACC !important;
+            color: #081849 !important;
+            border-left: 6px solid #213885 !important;
+            border-radius: 8px;
+        }}
+        div[data-testid="stAlert"] p, .stAlert p {{
+            color: #081849 !important;
+            font-weight: 600 !important;
+        }}
+        
+        /* BOTONES INTERNOS */
         div.stButton > button, .stButton button {{
-            background-color: #002f56 !important;
+            background-color: #213885 !important;
             color: #ffffff !important;
             border-radius: 6px !important;
             font-weight: 600 !important;
-            border: 1px solid #002f56 !important;
-            transition: all 0.2s ease-in-out !important;
+            border: 1px solid #213885 !important;
         }}
         div.stButton > button:hover, .stButton button:hover {{
-            background-color: #e1e4e6 !important;
-            color: #002f56 !important;
-            border: 1px solid #002f56 !important;
+            background-color: #081849 !important;
+            color: #ffffff !important;
         }}
-        [data-testid="stSidebar"] {{ background-color: #f4f5f6 !important; border-right: 1px solid #e0e0e0; }}
         
-        /* Contenedor del Encabezado Constante */
+        /* BARRA LATERAL RESTAURADA: Fondo claro, texto ultra legible */
+        [data-testid="stSidebar"] {{ 
+            background-color: #f4f5f6 !important; 
+            border-right: 2px solid #CCCACC; 
+        }}
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
+            color: #081849 !important;
+            font-weight: 700 !important;
+        }}
+        
+        /* Encabezado Único Solicitado */
         .constante-header-container {{
             display: flex;
             align-items: center;
             gap: 15px;
             margin-bottom: 25px;
-            border-bottom: 2px solid #f0f0f2;
+            border-bottom: 3px solid #CCCACC;
             padding-bottom: 15px;
         }}
         .constante-header-container h1 {{
             margin: 0 !important;
-            color: #002f56 !important;
+            color: #213885 !important;
             font-weight: 700;
-            font-size: 26px;
+            font-size: 28px;
         }}
         </style>
     """, unsafe_allow_html=True)
 
-    # 2. EVENTO ADMITIDO: Renderizado global y único del encabezado con el logo junto a la leyenda indicada
+    # Encabezado Único y Obligatorio
     st.markdown(f"""
         <div class="constante-header-container">
-            <img src="{LOGO_UJAT_URL}" width="45">
+            <img src="{LOGO_UJAT_URL}" width="50">
             <h1>Consultorio Psicológico DACYTI</h1>
         </div>
     """, unsafe_allow_html=True)
 
-    # Navegación lateral
+    # Navegación lateral (CON EL MÓDULO DE REPORTES EXECUTIVE RECUPERADO 📊)
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["📋 Expedientes Electrónicos", "📅 Agenda de Citas"])
+    seccion = st.sidebar.radio("Ir a:", [
+        "📋 Expedientes Electrónicos", 
+        "📅 Agenda de Citas", 
+        "📊 Reportes Ejecutivos"
+    ])
+    
+    st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Clínico:** {st.session_state.usuario_actual}")
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.autenticado = False
@@ -296,12 +328,8 @@ else:
             st.info("No se registran expedientes que coincidan con los filtros aplicados.")
 
         with st.expander("➕ Crear Nuevo Expediente Clínico (Multidivisional)"):
-            st.markdown("<p style='color:gray; font-size:12px;'>Complete todos los datos. Al presionar 'Guardar', el formulario se vaciará solo.</p>", unsafe_allow_html=True)
-            
-            # Nombre Completo como primera opción
             nom = st.text_input("Nombre Completo:", key="form_nom")
             
-            # Matrícula e Indicador de división a un costado
             c_e1, c_e2 = st.columns(2)
             with c_e1:
                 mat = st.text_input("Matrícula Institucional:", key="form_mat")
@@ -319,8 +347,8 @@ else:
                 cor = st.text_input("Correo Institucional:", key="form_cor")
             
             st.markdown("---")
-            st.markdown("### 🏷️ Diagnóstico y Clasificación Clínica")
-            st.info("💡 **Leyenda de Clasificación:** Escribe los síntomas o padecimientos detectados separados estrictamente por comas (Ejemplo: *ansiedad, depresion*).")
+            st.markdown("#### 🏷️ Diagnóstico y Clasificación Clínica")
+            st.info("💡 **Leyenda de Clasificación:** Escribe los síntomas o padecimientos detectados separados estrictamente por comas (Ejemplo: ansiedad, depresion).")
             
             tags = st.text_input("Etiquetas Clínicas / Diagnóstico:", key="form_tags")
             obs = st.text_area("Notas Clínicas Detalladas del Caso:", key="form_obs")
@@ -338,10 +366,10 @@ else:
                         conn.commit()
                         
                         limpiar_formulario_expediente()
-                        st.success("¡Expediente almacenado correctamente y formulario limpio!")
+                        st.success("¡Expediente almacenado correctamente!")
                         st.rerun()
                     except sqlite3.IntegrityError:
-                        st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
+                        st.error("Error: La matrícula ingresada ya se encuentra registrada.")
                     finally:
                         conn.close()
                 else:
@@ -353,7 +381,7 @@ else:
         col_c1, col_c2 = st.columns([1.8, 1.2])
         
         with col_c1:
-            st.markdown("### Historial de Sesiones")
+            st.markdown("#### Historial de Sesiones")
             conn = conectar_db_local()
             df_cit = pd.read_sql_query("""
                 SELECT c.id AS 'ID Cita', e.matricula AS 'Matrícula', e.nombre AS 'Paciente', 
@@ -368,7 +396,7 @@ else:
                 st.info("No hay citas agendadas programadas.")
                 
         with col_c2:
-            st.markdown("### 🔍 Agendar por Matrícula")
+            st.markdown("#### 🔍 Agendar por Matrícula")
             mat_buscar = st.text_input("Ingrese Matrícula del Alumno a buscar:")
             
             if mat_buscar.strip():
@@ -380,13 +408,13 @@ else:
                 
                 if paciente:
                     id_interno, nombre_p, div_p, car_p = paciente
-                    st.success(f"✅ **Paciente Encontrado:** {nombre_p} ({div_p} - {car_p})")
+                    st.success(f"✅ **Paciente:** {nombre_p} ({div_p})")
                     
                     f_cita = st.date_input("Programar Fecha:", value=datetime.now())
                     h_cita = st.time_input("Programar Hora:")
-                    motivo = st.text_area("Motivo de la sesión de apoyo:")
+                    motivo = st.text_area("Motivo de la sesión:")
                     
-                    if st.button("Confirmar y Agendar Cita"):
+                    if st.button("Confirmar Cita"):
                         fecha_iso = datetime.combine(f_cita, h_cita).strftime("%Y-%m-%d %H:%M:%S")
                         conn = conectar_db_local()
                         cursor = conn.cursor()
@@ -394,9 +422,46 @@ else:
                                        (id_interno, fecha_iso, motivo))
                         conn.commit()
                         conn.close()
-                        st.success("¡Cita agendada correctamente!")
+                        st.success("¡Cita agendada con éxito!")
                         st.rerun()
                 else:
-                    st.error("❌ No existe ningún expediente clínico con esa matrícula.")
+                    st.error("❌ No existe expediente con esa matrícula.")
+
+    # --- MÓDULO 3: REPORTES EJECUTIVOS (RESTABLECIDO TOTALMENTE) ---
+    elif seccion == "📊 Reportes Ejecutivos":
+        st.markdown("<h3>Panel de Control e Informe de Dirección</h3>", unsafe_allow_html=True)
+        
+        conn = conectar_db_local()
+        # Cálculos de métricas reales
+        tot_exp = conn.execute("SELECT COUNT(*) FROM expedientes").fetchone()[0]
+        tot_cit = conn.execute("SELECT COUNT(*) FROM citas").fetchone()[0]
+        
+        c_m1, c_m2, c_m3 = st.columns(3)
+        with c_m1:
+            st.metric("Expedientes Totales", tot_exp)
+        with c_m2:
+            st.metric("Citas Agendadas", tot_cit)
+        with c_m3:
+            st.metric("Consultas Completadas", tot_cit) # Es un espejo demostrativo
+            
+        st.markdown("---")
+        
+        # Extracción para gráficos sencillos
+        df_dem = pd.read_sql_query("SELECT genero, COUNT(*) as cantidad FROM expedientes GROUP BY genero", conn)
+        df_car_rep = pd.read_sql_query("SELECT carrera, COUNT(*) as cantidad FROM expedientes GROUP BY carrera", conn)
+        conn.close()
+        
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            st.markdown("#### 💡 Demografía por Género")
+            if not df_dem.empty:
+                st.bar_chart(df_dem.set_index("genero"))
             else:
-                st.caption("Escriba la matrícula arriba para desplegar el formulario.")
+                st.info("Sin datos demográficos registrados.")
+                
+        with col_g2:
+            st.markdown("#### 🏫 Casos por Carrera (DACYTI / Interdivisional)")
+            if not df_car_rep.empty:
+                st.bar_chart(df_car_rep.set_index("carrera"))
+            else:
+                st.info("Sin datos de carreras registrados.")

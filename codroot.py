@@ -1,25 +1,24 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (VERSIÓN INSTITUCIONAL)
+#           APLICACIÓN PRINCIPAL: codroot.py (VERSIÓN FILTRADA DE LOGOS)
 # =================================================================
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 import sqlite3
 
-# URL Oficial del Escudo UJAT (Solicitado para Pestaña y Login)
+# URL Oficial del Escudo UJAT
 LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png_seeklogo-233582.png"
 
-# --- 1. CONFIGURACIÓN DE PÁGINA (CAMBIO DE EMOJI A LOGO UJAT) ---
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Centro Psicológico UJAT",
-    page_icon=LOGO_UJAT_URL,  # Reemplazado el emoji por el logo oficial
+    page_title="Consultorio Psicológico DACYTI",
+    page_icon=LOGO_UJAT_URL,  # Se mantiene en la pestaña del navegador como favicon corporativo
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # --- 2. MOTOR DE CONEXIÓN LOCAL INTEGRADO (SQLite) ---
 def conectar_db_local():
-    """Establece conexión con la base de datos SQLite local."""
     try:
         conn = sqlite3.connect("centro_psicologico.db")
         return conn
@@ -28,11 +27,9 @@ def conectar_db_local():
         return None
 
 def inicializar_sistema_db():
-    """Crea las tablas con la estructura de autenticación, divisiones y etiquetas."""
     conn = conectar_db_local()
     if conn:
         cursor = conn.cursor()
-        # Tabla de usuarios (personal administrativo/clínico)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 usuario TEXT PRIMARY KEY,
@@ -42,7 +39,6 @@ def inicializar_sistema_db():
                 respuesta_secreta_hash TEXT
             )
         """)
-        # Tabla de expedientes clínicos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expedientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +54,6 @@ def inicializar_sistema_db():
                 etiquetas TEXT
             )
         """)
-        # Tabla de citas
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +64,6 @@ def inicializar_sistema_db():
                 FOREIGN KEY(expediente_id) REFERENCES expedientes(id)
             )
         """)
-        # Insertar usuario administrador por defecto si no existe
         cursor.execute("SELECT * FROM usuarios WHERE usuario = 'psicologa.sara'")
         if not cursor.fetchone():
             cursor.execute("""
@@ -79,7 +73,6 @@ def inicializar_sistema_db():
         conn.commit()
         conn.close()
 
-# Inicializar Base de Datos al arrancar
 inicializar_sistema_db()
 
 # --- 3. MANEJO DE ESTADOS DE SESIÓN ---
@@ -87,7 +80,6 @@ if "autenticado" not in st.session_state: st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = ""
 if "sub_pantalla_auth" not in st.session_state: st.session_state.sub_pantalla_auth = "login"
 
-# Estados para la autolimpieza de contenedores del formulario
 campos_formulario = ["form_mat", "form_nom", "form_tel", "form_cor", "form_tags", "form_obs"]
 for campo in campos_formulario:
     if campo not in st.session_state: st.session_state[campo] = ""
@@ -105,7 +97,7 @@ def limpiar_formulario_expediente():
     st.session_state.form_car = "Licenciatura en Tecnologías de la Información"
     st.session_state.form_sem = "1ro"
 
-# --- 4. DICCIONARIO DE DIVISIONES Y CARRERAS UJAT ---
+# Catálogo Interdivisional
 ESTRUCTURA_UJAT = {
     "DACYTI": [
         "Licenciatura en Tecnologías de la Información",
@@ -128,7 +120,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: CONTROL DE ACCESO (LOGIN)
+# FLUJO 1: CONTROL DE ACCESO (PANTALLA DE LOGIN CON LOGO)
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
     st.markdown("""
@@ -138,7 +130,6 @@ if not st.session_state.autenticado:
         div[data-testid="stWidgetLabel"] p, label { color: #37352f !important; font-weight: 500; }
         h1, h2 { color: #002f56 !important; font-weight: 700; text-align: center; }
         
-        /* Contraste estricto en botones de ingreso */
         button, div.stButton > button {
             background-color: #002f56 !important;
             color: #ffffff !important;
@@ -158,11 +149,11 @@ if not st.session_state.autenticado:
     col_izq, col_centro, col_der = st.columns([1.1, 1.3, 1.1])
     with col_centro:
         st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
-        # Despliegue de la imagen solicitada en el Login
+        # 1. EVENTO ADMITIDO: Logo presente en la pantalla de login
         st.markdown(f'<div style="text-align:center; margin-bottom: 20px;"><img src="{LOGO_UJAT_URL}" width="160"></div>', unsafe_allow_html=True)
         
         if st.session_state.sub_pantalla_auth == "login":
-            st.markdown("<h1>Centro Psicológico</h1>", unsafe_allow_html=True)
+            st.markdown("<h1>Consultorio Psicológico DACYTI</h1>", unsafe_allow_html=True)
             st.markdown("<p style='text-align:center; color:#666;'>Sistema de Gestión Interdivisional - UJAT</p>", unsafe_allow_html=True)
             
             u_login = st.text_input("Usuario Corporativo:")
@@ -205,61 +196,72 @@ if not st.session_state.autenticado:
                         st.session_state.sub_pantalla_auth = "login"
                         st.rerun()
                     except Exception:
-                        st.error("El nombre de usuario ya se encuentra registrado.")
+                        st.error("El nombre de usuario ya existe.")
                     finally:
                         conn.close()
             if st.button("⬅️ Cancelar"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
-        elif st.session_state.sub_pantalla_auth == "recuperar":
-            st.markdown("<h2>🔑 Restablecer Acceso</h2>", unsafe_allow_html=True)
-            rec_user = st.text_input("Usuario corporativo:")
-            rec_resp = st.text_input("Respuesta secreta:")
-            new_pass_reset = st.text_input("Nueva contraseña:", type="password")
-            
-            if st.button("Reestablecer Contraseña"):
-                conn = conectar_db_local()
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM usuarios WHERE usuario=? AND respuesta_secreta_hash=?", (rec_user, rec_resp))
-                if cursor.fetchone():
-                    cursor.execute("UPDATE usuarios SET clave_hash=? WHERE usuario=?", (new_pass_reset, rec_user))
-                    conn.commit()
-                    st.success("¡Contraseña actualizada correctamente!")
-                    st.session_state.sub_pantalla_auth = "login"
-                    st.rerun()
-                else:
-                    st.error("Respuesta de seguridad o usuario incorrectos.")
-                conn.close()
-            if st.button("⬅️ Volver al Login"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
-
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA
+# FLUJO 2: INTERFAZ DE ADMINISTRACIÓN INTERNA (ENCABEZADO CONSTANTE)
 # -------------------------------------------------------------------------------------
 else:
-    st.markdown("""
+    st.markdown(f"""
         <style>
-        .stApp { background-color: #ffffff !important; }
-        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p { color: #37352f !important; font-weight: 500 !important; }
-        .stDetails summary, div[data-testid="stExpander"] summary p { color: #213885 !important; font-weight: 600 !important; font-size: 16px !important; }
-        h1, h2, h3 { color: #002f56 !important; font-weight: 700; }
+        .stApp {{ background-color: #ffffff !important; }}
+        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p {{ color: #37352f !important; font-weight: 500 !important; }}
+        .stDetails summary, div[data-testid="stExpander"] summary p {{ color: #213885 !important; font-weight: 600 !important; font-size: 16px !important; }}
         
-        /* Regla de diseño dinámico para botones */
-        div.stButton > button, .stButton button {
+        /* Contenedores Gris Claro */
+        div[data-testid="stAlert"], .stAlert, div[data-testid="stCallout"] {{
+            background-color: #f2f3f5 !important;
+            color: #333333 !important;
+            border-left: 5px solid #002f56 !important;
+            border-radius: 6px;
+        }}
+        
+        /* Estilo unificado de botones */
+        div.stButton > button, .stButton button {{
             background-color: #002f56 !important;
             color: #ffffff !important;
             border-radius: 6px !important;
             font-weight: 600 !important;
             border: 1px solid #002f56 !important;
             transition: all 0.2s ease-in-out !important;
-        }
-        div.stButton > button:hover, .stButton button:hover {
+        }}
+        div.stButton > button:hover, .stButton button:hover {{
             background-color: #e1e4e6 !important;
             color: #002f56 !important;
             border: 1px solid #002f56 !important;
-        }
-        [data-testid="stSidebar"] { background-color: #f4f5f6 !important; border-right: 1px solid #e0e0e0; }
+        }}
+        [data-testid="stSidebar"] {{ background-color: #f4f5f6 !important; border-right: 1px solid #e0e0e0; }}
+        
+        /* Contenedor del Encabezado Constante */
+        .constante-header-container {{
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f0f0f2;
+            padding-bottom: 15px;
+        }}
+        .constante-header-container h1 {{
+            margin: 0 !important;
+            color: #002f56 !important;
+            font-weight: 700;
+            font-size: 26px;
+        }}
         </style>
     """, unsafe_allow_html=True)
 
+    # 2. EVENTO ADMITIDO: Renderizado global y único del encabezado con el logo junto a la leyenda indicada
+    st.markdown(f"""
+        <div class="constante-header-container">
+            <img src="{LOGO_UJAT_URL}" width="45">
+            <h1>Consultorio Psicológico DACYTI</h1>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Navegación lateral
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
     seccion = st.sidebar.radio("Ir a:", ["📋 Expedientes Electrónicos", "📅 Agenda de Citas"])
     st.sidebar.write(f"👤 **Clínico:** {st.session_state.usuario_actual}")
@@ -269,7 +271,7 @@ else:
 
     # --- MÓDULO 1: EXPEDIENTES ---
     if seccion == "📋 Expedientes Electrónicos":
-        st.markdown("<h1>📋 Repositorio Unificado de Expedientes</h1>", unsafe_allow_html=True)
+        st.markdown("<h3>Repositorio Unificado de Expedientes</h3>", unsafe_allow_html=True)
         
         c_f1, c_f2 = st.columns(2)
         with c_f1: bus_nom = st.text_input("🔍 Buscar por Nombre o Matrícula:")
@@ -296,22 +298,29 @@ else:
         with st.expander("➕ Crear Nuevo Expediente Clínico (Multidivisional)"):
             st.markdown("<p style='color:gray; font-size:12px;'>Complete todos los datos. Al presionar 'Guardar', el formulario se vaciará solo.</p>", unsafe_allow_html=True)
             
+            # Nombre Completo como primera opción
+            nom = st.text_input("Nombre Completo:", key="form_nom")
+            
+            # Matrícula e Indicador de división a un costado
             c_e1, c_e2 = st.columns(2)
             with c_e1:
                 mat = st.text_input("Matrícula Institucional:", key="form_mat")
-                nom = st.text_input("Nombre Completo:", key="form_nom")
-                gen = st.selectbox("Género:", ["Masculino", "Femenino", "No Especificado"], key="form_gen")
-                div_sel = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()), key="form_div")
             with c_e2:
+                div_sel = st.selectbox("División Académica del Alumno:", list(ESTRUCTURA_UJAT.keys()), key="form_div")
+                
+            c_e3, c_e4 = st.columns(2)
+            with c_e3:
+                gen = st.selectbox("Género:", ["Masculino", "Femenino", "No Especificado"], key="form_gen")
                 carreras_disponibles = ESTRUCTURA_UJAT[div_sel]
                 car = st.selectbox("Carrera del Alumno:", carreras_disponibles, key="form_car")
+            with c_e4:
                 sem = st.selectbox("Semestre Actual:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="form_sem")
                 tel = st.text_input("Teléfono de Contacto:", key="form_tel")
                 cor = st.text_input("Correo Institucional:", key="form_cor")
             
             st.markdown("---")
             st.markdown("### 🏷️ Diagnóstico y Clasificación Clínica")
-            st.info("💡 **Leyenda de Clasificación:** Escribe los síntomas o padecimientos detectados separados estrictamente por comas (Ejemplo: *ansiedad, depresion, estres academico*). Esto permitirá localizarlos al instante en el buscador principal estilo Notion.")
+            st.info("💡 **Leyenda de Clasificación:** Escribe los síntomas o padecimientos detectados separados estrictamente por comas (Ejemplo: *ansiedad, depresion*).")
             
             tags = st.text_input("Etiquetas Clínicas / Diagnóstico:", key="form_tags")
             obs = st.text_area("Notas Clínicas Detalladas del Caso:", key="form_obs")
@@ -338,9 +347,9 @@ else:
                 else:
                     st.warning("Rellene los campos obligatorios (Matrícula y Nombre).")
 
-    # --- MÓDULO 2: CITAS OPTIMIZADO POR MATRÍCULA ---
+    # --- MÓDULO 2: CITAS ---
     elif seccion == "📅 Agenda de Citas":
-        st.markdown("<h1>📅 Control y Agenda de Citas</h1>", unsafe_allow_html=True)
+        st.markdown("<h3>Control y Agenda de Citas</h3>", unsafe_allow_html=True)
         col_c1, col_c2 = st.columns([1.8, 1.2])
         
         with col_c1:
@@ -359,7 +368,7 @@ else:
                 st.info("No hay citas agendadas programadas.")
                 
         with col_c2:
-            st.markdown("### 🔍 Agendar por Matrícula (Optimizado)")
+            st.markdown("### 🔍 Agendar por Matrícula")
             mat_buscar = st.text_input("Ingrese Matrícula del Alumno a buscar:")
             
             if mat_buscar.strip():
@@ -390,4 +399,4 @@ else:
                 else:
                     st.error("❌ No existe ningún expediente clínico con esa matrícula.")
             else:
-                st.caption("Escriba la matrícula arriba para desplegar el formulario de asignación de cita.")
+                st.caption("Escriba la matrícula arriba para desplegar el formulario.")

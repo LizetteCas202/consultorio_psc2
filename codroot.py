@@ -16,47 +16,51 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ESTILO INYECTADO COMPLETO: Garantiza alto contraste en textos y barra lateral
+# -------------------------------------------------------------------------------------
+# DISEÑO CSS ULTRA-PRECONSTRUIDO: Corrige el contraste sin romper los inputs
+# -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* Fondo general de la app */
+    /* Fondo principal de la aplicación */
     .main { 
         background-color: #ffffff !important; 
         color: #111111 !important; 
     }
     
-    /* Títulos principales */
-    h1, h2, h3 { 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-        font-weight: 600; 
+    /* Forzar títulos en color oscuro */
+    h1, h2, h3, h4, h5, h6 { 
         color: #111111 !important; 
-    }
-    
-    /* --- BARRA LATERAL (SIDEBAR) --- */
-    [data-testid="stSidebar"] {
-        background-color: #f7f8f9 !important; /* Gris claro Notion */
-        border-right: 1px solid #e9ebab;
-    }
-    
-    /* Forzar que CUALQUIER texto dentro de la barra lateral sea negro e indestructible */
-    [data-testid="stSidebar"] * {
-        color: #1a1a1a !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     }
     
-    /* Ajuste específico para los textos de los radio buttons */
-    [data-testid="stWidgetLabel"] p, [data-testid="stMarkdownContainer"] p {
-        color: #1a1a1a !important;
+    /* BARRA LATERAL: Fondo gris claro y limpio */
+    [data-testid="stSidebar"] {
+        background-color: #f4f5f6 !important;
+        border-right: 1px solid #e0e0e0 !important;
+    }
+    
+    /* ARREGLO DE TEXTO: Apuntar exclusivamente a las letras de las opciones del menú */
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] p,
+    [data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #111111 !important;
         font-weight: 500 !important;
     }
     
-    /* Botón estandarizado azul */
+    /* Mantener las cajas de texto internas limpias y con fondo blanco */
+    [data-testid="stSidebar"] input {
+        background-color: #ffffff !important;
+        color: #111111 !important;
+    }
+
+    /* Estilo elegante para el botón de acción principal */
     div.stButton > button:first-child { 
-        background-color: #2eaadc; 
+        background-color: #2eaadc !important; 
         color: white !important; 
-        border-radius: 6px; 
-        border: none;
-        font-weight: bold;
+        border-radius: 6px !important; 
+        border: none !important;
+        font-weight: bold !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -113,10 +117,13 @@ if not st.session_state.autenticado:
 
 # INTERFAZ WEB INTERNA
 else:
-    st.sidebar.title("🗂️ Navegación")
-    seccion = st.sidebar.radio("Ir a:", ["📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
-    st.sidebar.write("---")
-    st.sidebar.write(f"**Operador:** {st.session_state.usuario_actual}")
+    st.sidebar.markdown("### 🗂️ Navegación")
+    seccion = st.sidebar.radio(
+        "Seleccione un módulo:", 
+        ["📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"]
+    )
+    st.sidebar.markdown("---")
+    st.sidebar.write(f"👤 **Operador:** {st.session_state.usuario_actual}")
     if st.sidebar.button("Cerrar Sesión Segura"):
         st.session_state.autenticado = False
         st.session_state.usuario_actual = ""

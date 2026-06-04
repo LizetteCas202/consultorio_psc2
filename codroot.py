@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (FIX TOTAL DE COLORES V3)
+#           APLICACIÓN PRINCIPAL: codroot.py (FIX EXPANDER V4)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -117,7 +117,6 @@ if not st.session_state.autenticado:
                     st.session_state.sub_pantalla_auth = "recuperar"
                     st.rerun()
 
-        # (Flujos secundarios de Auth se mantienen idénticos para no generar ruido)
         elif st.session_state.sub_pantalla_auth == "registro":
             st.markdown("<h2 style='text-align: center;'>📝 Registro de Personal</h2>", unsafe_allow_html=True)
             new_user = st.text_input("Definir nombre de usuario:")
@@ -141,69 +140,69 @@ if not st.session_state.autenticado:
             if st.button("⬅️ Volver al Login"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ CLÍNICA INTERNA (CORRECCIÓN DE COLORES E INVISIBILIDAD)
+# FLUJO 2: INTERFAZ CLÍNICA INTERNA (REPARACIÓN DE VISIBILIDAD DE EXPANDER)
 # -------------------------------------------------------------------------------------
 else:
-    # Inyección de CSS Maestro para la sección interna
     st.markdown("""
         <style>
-        /* Fondo blanco de la app e igualar tipografía general */
         .stApp { 
             background-color: #ffffff !important; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
         
-        /* CORRECCIÓN DE COLORES: Forzar visibilidad en textos y etiquetas internas */
+        /* Forzar visibilidad en textos y etiquetas internas */
         div[data-testid="stWidgetLabel"] p, 
         label, 
         .stMarkdown p, 
         span[data-testid="stWidgetLabel"] p {
-            color: #37352f !important; /* Gris oscuro Notion */
+            color: #37352f !important;
             font-weight: 500 !important;
         }
         
-        /* Asegurar que las advertencias amarillas/alertas tengan texto legible */
+        /* SOLUCIÓN TOTAL AL EXPANDER: Forzar color oscuro en el título del desplegable */
+        .stDetails summary, 
+        div[data-testid="stExpander"] details summary p, 
+        div[data-testid="stExpander"] p {
+            color: #37352f !important;
+            font-weight: 600 !important;
+        }
+        
         div[data-testid="stNotification"] p {
             color: #2b2b2b !important;
             font-weight: 500 !important;
         }
         
-        /* Títulos principales con Azul Marino Institucional UJAT */
         h1, h2, h3 { 
             color: #002f56 !important; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             font-weight: 700 !important;
         }
         
-        /* --- PERSONALIZACIÓN EXCLUSIVA DE LA BARRA LATERAL --- */
+        /* Barra lateral */
         [data-testid="stSidebar"] {
             background-color: #f4f5f6 !important;
             border-right: 1px solid #e0e0e0 !important;
         }
         
-        /* Título de la sección de Navegación */
         [data-testid="stSidebar"] h3 {
             color: #002f56 !important;
             font-size: 18px !important;
             margin-bottom: 10px !important;
         }
         
-        /* ADAPTACIÓN DE TIPOGRAFÍA EN NAVEGACIÓN: Idéntica a títulos pero a tamaño sidebar */
         [data-testid="stSidebar"] div[role="radiogroup"] label p {
-            color: #002f56 !important; /* Azul Marino UJAT */
+            color: #002f56 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             font-weight: 600 !important;
-            font-size: 14px !important; /* Adaptado al tamaño de la barra */
+            font-size: 14px !important;
         }
         
-        /* Ajustes de inputs internos */
         input, select, textarea { 
             color: #111111 !important; 
             background-color: #ffffff !important; 
             border: 1px solid #cccccc !important;
         }
         
-        /* Botón de guardar/confirmar interno */
         div.stButton > button:first-child { 
             background-color: #002f56 !important; 
             color: white !important; 
@@ -258,6 +257,7 @@ else:
         else:
             st.info("No se encontraron registros clínicos.")
             
+        # AQUÍ ESTÁ EL EXPANDER CORREGIDO EN COLOR
         with st.expander("➕ Crear Nuevo Expediente Clínico"):
             with st.form("form_expediente"):
                 mat = st.text_input("Matrícula Institucional:")

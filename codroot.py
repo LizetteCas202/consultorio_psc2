@@ -8,6 +8,7 @@ from codconexion import crear_tablas_iniciales, conectar_db
 from codauth import verificar_credenciales, inicializar_usuario_admin, registrar_usuario, recuperar_clave_por_pregunta
 from codestadisticas import renderizar_reportes_direccion, obtener_dataframe
 
+# Configuración Inicial Estilo Notion
 st.set_page_config(
     page_title="Centro Psicológico UJAT",
     page_icon="🧠",
@@ -15,15 +16,52 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ESTILO INYECTADO COMPLETO: Garantiza alto contraste en textos y barra lateral
 st.markdown("""
     <style>
-    .main { background-color: #fafafa; color: #333333; }
-    [data-testid="stSidebar"] { background-color: #f4f5f6; }
-    h1, h2, h3 { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 600; }
-    div.stButton > button:first-child { background-color: #2eaadc; color: white; border-radius: 6px; }
+    /* Fondo general de la app */
+    .main { 
+        background-color: #ffffff !important; 
+        color: #111111 !important; 
+    }
+    
+    /* Títulos principales */
+    h1, h2, h3 { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
+        font-weight: 600; 
+        color: #111111 !important; 
+    }
+    
+    /* --- BARRA LATERAL (SIDEBAR) --- */
+    [data-testid="stSidebar"] {
+        background-color: #f7f8f9 !important; /* Gris claro Notion */
+        border-right: 1px solid #e9ebab;
+    }
+    
+    /* Forzar que CUALQUIER texto dentro de la barra lateral sea negro e indestructible */
+    [data-testid="stSidebar"] * {
+        color: #1a1a1a !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    }
+    
+    /* Ajuste específico para los textos de los radio buttons */
+    [data-testid="stWidgetLabel"] p, [data-testid="stMarkdownContainer"] p {
+        color: #1a1a1a !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Botón estandarizado azul */
+    div.stButton > button:first-child { 
+        background-color: #2eaadc; 
+        color: white !important; 
+        border-radius: 6px; 
+        border: none;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# Inicializar Base de Datos y Admin
 crear_tablas_iniciales()
 inicializar_usuario_admin()
 
@@ -32,6 +70,7 @@ if "autenticado" not in st.session_state:
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = ""
 
+# PANTALLA DE LOG-IN
 if not st.session_state.autenticado:
     st.title("🧠 Centro Psicológico Unidad Chontalpa - UJAT")
     st.subheader("Sistema Integral de Gestión de Citas y Expedientes")
@@ -72,6 +111,7 @@ if not st.session_state.autenticado:
             if exito: st.success(msg)
             else: st.error(msg)
 
+# INTERFAZ WEB INTERNA
 else:
     st.sidebar.title("🗂️ Navegación")
     seccion = st.sidebar.radio("Ir a:", ["📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
@@ -195,4 +235,3 @@ else:
 
     elif seccion == "📊 Reportes Ejecutivos":
         renderizar_reportes_direccion()
-        

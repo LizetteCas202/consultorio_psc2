@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (EDICIÓN INSTITUCIONAL UJAT)
+#           APLICACIÓN PRINCIPAL: codroot.py (LOG-IN FIX V2)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -27,14 +27,14 @@ if "usuario_actual" not in st.session_state:
 if "sub_pantalla_auth" not in st.session_state:
     st.session_state.sub_pantalla_auth = "login"
 
-# URL Estable del Escudo Oficial de la UJAT para la identidad institucional
-LOGO_UJAT_URL = "https://www.ujat.mx/Contenido/imagenes/ujat.png"
+# URL Alternativa Estable y Pública del Escudo UJAT (Evita bloqueos de servidor)
+LOGO_UJAT_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg/800px-Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg.png"
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA (Paleta UJAT Oficial & Tipografía Notion)
+# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA CORREGIDA (Letras visibles y logo asegurado)
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
-    # Inyección de CSS Avanzado: Colores Juchimán y fuentes minimalistas de Notion
+    # Inyección de CSS Avanzado: Corrección de contraste para etiquetas invisibles
     st.markdown("""
         <style>
         /* Ocultar barra lateral en el Login */
@@ -45,41 +45,40 @@ if not st.session_state.autenticado:
             display: none !important;
         }
         
-        /* Fondo general blanco y tipografía limpia de Notion */
+        /* Fondo general blanco y tipografía Notion */
         .stApp {
             background-color: #ffffff !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         }
         
-        /* Contenedores de texto y fuentes */
-        h1, h2, h3, p, label {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        /* SOLUCIÓN AL PROBLEMA 2: Forzar color oscuro visible en las etiquetas de los inputs */
+        div[data-testid="stWidgetLabel"] p, label, .stMarkdown p {
+            color: #37352f !important; /* Negro/Gris carbón estilo Notion */
+            font-weight: 500 !important;
+            font-size: 14px !important;
         }
         
         h1 {
             color: #002f56 !important; /* Azul Marino Oficial UJAT */
             font-weight: 700 !important;
-            font-size: 26px !important;
+            font-size: 28px !important;
             letter-spacing: -0.5px;
+            margin-bottom: 5px !important;
         }
         
-        h3 {
-            color: #555555 !important;
-            font-weight: 500 !important;
-            font-size: 16px !important;
+        p.subtitulo-ujat {
+            color: #666666 !important;
+            font-size: 14px !important;
+            text-align: center !important;
+            margin-top: 0px !important;
         }
         
-        /* Inputs estéticos estilo Notion (Bordes sutiles, fondo limpio) */
+        /* Inputs estéticos estilo Notion */
         input {
             color: #111111 !important;
             background-color: #f9f9fb !important;
             border: 1px solid #e1e4e6 !important;
             border-radius: 8px !important;
-            padding: 10px !important;
-        }
-        input:focus {
-            border-color: #002f56 !important;
-            box-shadow: 0 0 0 2px rgba(0, 47, 86, 0.2) !important;
         }
         
         /* Botón Principal: Azul Marino UJAT */
@@ -92,25 +91,27 @@ if not st.session_state.autenticado:
             font-size: 15px !important;
             width: 100% !important;
             padding: 12px !important;
-            transition: background-color 0.2s ease;
         }
         div.stButton > button:first-child:hover {
             background-color: #00467f !important;
             color: #ffffff !important;
         }
         
-        /* Botones secundarios (Registrarse / Olvidé clave) como enlaces limpios */
+        /* Botones secundarios (Registrarse / Olvidé clave) */
         div[data-testid="stHorizontalBlock"] div.stButton > button {
             background-color: transparent !important;
             color: #002f56 !important;
             border: 1px solid #e1e4e6 !important;
             font-weight: 500 !important;
             font-size: 13px !important;
-            padding: 6px 12px !important;
         }
-        div[data-testid="stHorizontalBlock"] div.stButton > button:hover {
-            background-color: #f4f5f6 !important;
-            border-color: #ced4da !important;
+        
+        /* Centrar contenedor del logo */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -121,14 +122,18 @@ if not st.session_state.autenticado:
     with col_centro:
         st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
         
-        # Renderizado Centrado del Logo Institucional de la UJAT
-        st.image(LOGO_UJAT_URL, width=140, use_container_width=False)
+        # SOLUCIÓN AL PROBLEMA 1: Contenedor HTML para asegurar centrado del logo sin fallas de carga
+        st.markdown(f"""
+            <div class="logo-container">
+                <img src="{LOGO_UJAT_URL}" width="120">
+            </div>
+        """, unsafe_allow_html=True)
         
         # PANTALLA PRINCIPAL DE LOGIN
         if st.session_state.sub_pantalla_auth == "login":
-            st.markdown("<h1 style='text-align: center; margin-bottom: 2px;'>Centro Psicológico</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #666666; font-size: 14px; margin-top: 0px;'>División Académica de Ciencias y Tecnologías de la Información</p>", unsafe_allow_html=True)
-            st.write("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center;'>Centro Psicológico</h1>", unsafe_allow_html=True)
+            st.markdown("<p class='subtitulo-ujat'>División Académica de Ciencias y Tecnologías de la Información</p>", unsafe_allow_html=True)
+            st.write("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             
             user_input = st.text_input("Usuario Corporativo:")
             pass_input = st.text_input("Contraseña:", type="password")

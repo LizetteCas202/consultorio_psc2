@@ -195,3 +195,4 @@ else:
 
     elif seccion == "📊 Reportes Ejecutivos":
         renderizar_reportes_direccion()
+        

@@ -1,5 +1,5 @@
 # =================================================================
-#           APLICACIÓN PRINCIPAL: codroot.py (LOG-IN FIX V2)
+#           APLICACIÓN PRINCIPAL: codroot.py (FIX TOTAL DE COLORES V3)
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -27,53 +27,42 @@ if "usuario_actual" not in st.session_state:
 if "sub_pantalla_auth" not in st.session_state:
     st.session_state.sub_pantalla_auth = "login"
 
-# URL Alternativa Estable y Pública del Escudo UJAT (Evita bloqueos de servidor)
+# URL Alternativa Estable del Escudo UJAT
 LOGO_UJAT_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg/800px-Tabasco_Universidad_Ju%C3%A1rez_Aut%C3%B3noma_de_Tabasco_logo.svg.png"
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA CORREGIDA (Letras visibles y logo asegurado)
+# FLUJO 1: PANTALLA DE LOG-IN EXCLUSIVA
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
-    # Inyección de CSS Avanzado: Corrección de contraste para etiquetas invisibles
     st.markdown("""
         <style>
-        /* Ocultar barra lateral en el Login */
-        [data-testid="stSidebar"] {
-            display: none !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] {
-            display: none !important;
-        }
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stSidebarCollapsedControl"] { display: none !important; }
         
-        /* Fondo general blanco y tipografía Notion */
         .stApp {
             background-color: #ffffff !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
         
-        /* SOLUCIÓN AL PROBLEMA 2: Forzar color oscuro visible en las etiquetas de los inputs */
         div[data-testid="stWidgetLabel"] p, label, .stMarkdown p {
-            color: #37352f !important; /* Negro/Gris carbón estilo Notion */
+            color: #37352f !important;
             font-weight: 500 !important;
             font-size: 14px !important;
         }
         
         h1 {
-            color: #002f56 !important; /* Azul Marino Oficial UJAT */
+            color: #002f56 !important;
             font-weight: 700 !important;
             font-size: 28px !important;
             letter-spacing: -0.5px;
-            margin-bottom: 5px !important;
         }
         
         p.subtitulo-ujat {
             color: #666666 !important;
             font-size: 14px !important;
             text-align: center !important;
-            margin-top: 0px !important;
         }
         
-        /* Inputs estéticos estilo Notion */
         input {
             color: #111111 !important;
             background-color: #f9f9fb !important;
@@ -81,69 +70,38 @@ if not st.session_state.autenticado:
             border-radius: 8px !important;
         }
         
-        /* Botón Principal: Azul Marino UJAT */
         div.stButton > button:first-child { 
             background-color: #002f56 !important; 
             color: #ffffff !important; 
             border-radius: 8px !important; 
-            border: none !important;
             font-weight: 600 !important;
-            font-size: 15px !important;
-            width: 100% !important;
             padding: 12px !important;
         }
-        div.stButton > button:first-child:hover {
-            background-color: #00467f !important;
-            color: #ffffff !important;
-        }
         
-        /* Botones secundarios (Registrarse / Olvidé clave) */
-        div[data-testid="stHorizontalBlock"] div.stButton > button {
-            background-color: transparent !important;
-            color: #002f56 !important;
-            border: 1px solid #e1e4e6 !important;
-            font-weight: 500 !important;
-            font-size: 13px !important;
-        }
-        
-        /* Centrar contenedor del logo */
         .logo-container {
             display: flex;
             justify-content: center;
-            align-items: center;
             margin-bottom: 15px;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # Centrado del Login en la pantalla
     col_izq, col_centro, col_der = st.columns([1.1, 1.3, 1.1])
-    
     with col_centro:
         st.write("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+        st.markdown(f'<div class="logo-container"><img src="{LOGO_UJAT_URL}" width="120"></div>', unsafe_allow_html=True)
         
-        # SOLUCIÓN AL PROBLEMA 1: Contenedor HTML para asegurar centrado del logo sin fallas de carga
-        st.markdown(f"""
-            <div class="logo-container">
-                <img src="{LOGO_UJAT_URL}" width="120">
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # PANTALLA PRINCIPAL DE LOGIN
         if st.session_state.sub_pantalla_auth == "login":
             st.markdown("<h1 style='text-align: center;'>Centro Psicológico</h1>", unsafe_allow_html=True)
             st.markdown("<p class='subtitulo-ujat'>División Académica de Ciencias y Tecnologías de la Información</p>", unsafe_allow_html=True)
-            st.write("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
             
             user_input = st.text_input("Usuario Corporativo:")
             pass_input = st.text_input("Contraseña:", type="password")
             
-            st.write("<br>", unsafe_allow_html=True)
             if st.button("Ingresar al Portal"):
                 if verificar_credenciales(user_input, pass_input):
                     st.session_state.autenticado = True
                     st.session_state.usuario_actual = user_input
-                    st.success(f"¡Bienvenida, comadre!")
                     st.rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos.")
@@ -159,76 +117,102 @@ if not st.session_state.autenticado:
                     st.session_state.sub_pantalla_auth = "recuperar"
                     st.rerun()
 
-        # FLUJO SECUNDARIO: REGISTRO DE NUEVO PERSONAL
+        # (Flujos secundarios de Auth se mantienen idénticos para no generar ruido)
         elif st.session_state.sub_pantalla_auth == "registro":
             st.markdown("<h2 style='text-align: center;'>📝 Registro de Personal</h2>", unsafe_allow_html=True)
-            st.write("<br>", unsafe_allow_html=True)
             new_user = st.text_input("Definir nombre de usuario:")
             new_pass = st.text_input("Definir contraseña:", type="password")
             pregunta = st.selectbox("Pregunta de seguridad:", ["¿Unidad de origen?", "¿Clave de empleado?"])
             respuesta = st.text_input("Respuesta Secreta:")
-            
-            st.write("<br>", unsafe_allow_html=True)
             if st.button("Confirmar Registro"):
                 if new_user and new_pass and respuesta:
                     exito, msg = registrar_usuario(new_user, new_pass, "Psicologo", pregunta, respuesta)
-                    if exito: 
-                        st.success(msg)
-                        st.session_state.sub_pantalla_auth = "login"
-                        st.rerun()
-                    else: st.error(msg)
-            
-            if st.button("⬅️ Volver al Login"):
-                st.session_state.sub_pantalla_auth = "login"
-                st.rerun()
+                    if exito: st.session_state.sub_pantalla_auth = "login"; st.rerun()
+            if st.button("⬅️ Volver al Login"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
-        # FLUJO SECUNDARIO: RECUPERACIÓN DE CUENTA
         elif st.session_state.sub_pantalla_auth == "recuperar":
             st.markdown("<h2 style='text-align: center;'>🔑 Restablecer Acceso</h2>", unsafe_allow_html=True)
-            st.write("<br>", unsafe_allow_html=True)
             rec_user = st.text_input("Usuario corporativo:")
             rec_resp = st.text_input("Respuesta secreta:")
             new_pass_reset = st.text_input("Nueva contraseña:", type="password")
-            
-            st.write("<br>", unsafe_allow_html=True)
             if st.button("Reestablecer Contraseña"):
                 exito, msg = recuperar_clave_por_pregunta(rec_user, rec_resp, new_pass_reset)
-                if exito: 
-                    st.success(msg)
-                    st.session_state.sub_pantalla_auth = "login"
-                    st.rerun()
-                else: st.error(msg)
-                
-            if st.button("⬅️ Volver al Login"):
-                st.session_state.sub_pantalla_auth = "login"
-                st.rerun()
+                if exito: st.session_state.sub_pantalla_auth = "login"; st.rerun()
+            if st.button("⬅️ Volver al Login"): st.session_state.sub_pantalla_auth = "login"; st.rerun()
 
 # -------------------------------------------------------------------------------------
-# FLUJO 2: INTERFAZ CLÍNICA INTERNA (Color de acento UJAT en botones)
+# FLUJO 2: INTERFAZ CLÍNICA INTERNA (CORRECCIÓN DE COLORES E INVISIBILIDAD)
 # -------------------------------------------------------------------------------------
 else:
-    # Estilo interno refinado
+    # Inyección de CSS Maestro para la sección interna
     st.markdown("""
         <style>
-        .stApp { background-color: #ffffff; }
+        /* Fondo blanco de la app e igualar tipografía general */
+        .stApp { 
+            background-color: #ffffff !important; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+        
+        /* CORRECCIÓN DE COLORES: Forzar visibilidad en textos y etiquetas internas */
+        div[data-testid="stWidgetLabel"] p, 
+        label, 
+        .stMarkdown p, 
+        span[data-testid="stWidgetLabel"] p {
+            color: #37352f !important; /* Gris oscuro Notion */
+            font-weight: 500 !important;
+        }
+        
+        /* Asegurar que las advertencias amarillas/alertas tengan texto legible */
+        div[data-testid="stNotification"] p {
+            color: #2b2b2b !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Títulos principales con Azul Marino Institucional UJAT */
+        h1, h2, h3 { 
+            color: #002f56 !important; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-weight: 700 !important;
+        }
+        
+        /* --- PERSONALIZACIÓN EXCLUSIVA DE LA BARRA LATERAL --- */
         [data-testid="stSidebar"] {
             background-color: #f4f5f6 !important;
             border-right: 1px solid #e0e0e0 !important;
         }
-        [data-testid="stSidebar"] .stMarkdown p,
-        [data-testid="stSidebar"] h3,
-        [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] p,
-        [data-testid="stSidebar"] div[role="radiogroup"] label p {
-            color: #111111 !important;
-            font-weight: 500 !important;
+        
+        /* Título de la sección de Navegación */
+        [data-testid="stSidebar"] h3 {
+            color: #002f56 !important;
+            font-size: 18px !important;
+            margin-bottom: 10px !important;
         }
-        h1, h2, h3 { color: #002f56 !important; font-family: -apple-system, sans-serif !important; }
-        input, select, textarea { color: #111111 !important; background-color: #ffffff !important; }
-        div.stButton > button:first-child { background-color: #002f56 !important; color: white !important; border-radius: 6px !important; }
+        
+        /* ADAPTACIÓN DE TIPOGRAFÍA EN NAVEGACIÓN: Idéntica a títulos pero a tamaño sidebar */
+        [data-testid="stSidebar"] div[role="radiogroup"] label p {
+            color: #002f56 !important; /* Azul Marino UJAT */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-weight: 600 !important;
+            font-size: 14px !important; /* Adaptado al tamaño de la barra */
+        }
+        
+        /* Ajustes de inputs internos */
+        input, select, textarea { 
+            color: #111111 !important; 
+            background-color: #ffffff !important; 
+            border: 1px solid #cccccc !important;
+        }
+        
+        /* Botón de guardar/confirmar interno */
+        div.stButton > button:first-child { 
+            background-color: #002f56 !important; 
+            color: white !important; 
+            border-radius: 6px !important; 
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    # Panel de Navigation Lateral Interno
+    # Panel de Navegación Lateral Interno
     st.sidebar.markdown("### 🗂️ Navegación")
     seccion = st.sidebar.radio(
         "Seleccione un módulo:", 

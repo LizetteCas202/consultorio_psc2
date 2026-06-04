@@ -17,29 +17,28 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------------------------------
-# DISEÑO CSS ULTRA-PRECONSTRUIDO: Corrige el contraste sin romper los inputs
+# CONFIGURACIÓN DE ESTILOS LIMPIOS Y SEGUROS (EVITA RECUADROS NEGROS Y TÍTULOS INVISIBLES)
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* Fondo principal de la aplicación */
-    .main { 
-        background-color: #ffffff !important; 
-        color: #111111 !important; 
+    /* 1. Forzar color de fondo blanco en toda la aplicación de forma segura */
+    .stApp {
+        background-color: #ffffff !important;
     }
     
-    /* Forzar títulos en color oscuro */
-    h1, h2, h3, h4, h5, h6 { 
-        color: #111111 !important; 
+    /* 2. Forzar que todos los títulos sean visibles y de color negro absoluto */
+    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { 
+        color: #000000 !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     }
     
-    /* BARRA LATERAL: Fondo gris claro y limpio */
+    /* 3. BARRA LATERAL: Fondo gris claro y limpio sin tocar los inputs */
     [data-testid="stSidebar"] {
         background-color: #f4f5f6 !important;
         border-right: 1px solid #e0e0e0 !important;
     }
     
-    /* ARREGLO DE TEXTO: Apuntar exclusivamente a las letras de las opciones del menú */
+    /* 4. Apuntar exclusivamente a los textos del menú lateral para que sean legibles */
     [data-testid="stSidebar"] .stMarkdown p,
     [data-testid="stSidebar"] h3,
     [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] p,
@@ -48,13 +47,13 @@ st.markdown("""
         font-weight: 500 !important;
     }
     
-    /* Mantener las cajas de texto internas limpias y con fondo blanco */
-    [data-testid="stSidebar"] input {
-        background-color: #ffffff !important;
+    /* 5. Asegurar que los inputs no se alteren con fondos oscuros */
+    input, select, textarea {
         color: #111111 !important;
+        background-color: #ffffff !important;
     }
 
-    /* Estilo elegante para el botón de acción principal */
+    /* 6. Botón de acción principal en color azul corporativo */
     div.stButton > button:first-child { 
         background-color: #2eaadc !important; 
         color: white !important; 
@@ -76,8 +75,9 @@ if "usuario_actual" not in st.session_state:
 
 # PANTALLA DE LOG-IN
 if not st.session_state.autenticado:
-    st.title("🧠 Centro Psicológico Unidad Chontalpa - UJAT")
-    st.subheader("Sistema Integral de Gestión de Citas y Expedientes")
+    # Títulos encerrados en etiquetas HTML directas para asegurar color negro absoluto
+    st.markdown("<h1 style='color: #000000 !important;'>🧠 Centro Psicológico Unidad Chontalpa - UJAT</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #333333 !important;'>Sistema Integral de Gestión de Citas y Expedientes</h3>", unsafe_allow_html=True)
     
     pestana_login, pestana_registro, pestana_recuperar = st.tabs(["🔒 Iniciar Sesión", "📝 Registrar Personal", "🔑 Recuperar Cuenta"])
     
@@ -94,7 +94,7 @@ if not st.session_state.autenticado:
                 st.error("Credenciales incorrectas.")
                 
     with pestana_registro:
-        st.markdown("### Alta de nuevo Terapeuta")
+        st.markdown("<h3 style='color: #000000 !important;'>Alta de nuevo Terapeuta</h3>", unsafe_allow_html=True)
         new_user = st.text_input("Definir nombre de usuario:")
         new_pass = st.text_input("Definir contraseña:", type="password")
         pregunta = st.selectbox("Pregunta de seguridad:", ["¿Unidad de origen?", "¿Clave de empleado?"])
@@ -106,7 +106,7 @@ if not st.session_state.autenticado:
                 else: st.error(msg)
                 
     with pestana_recuperar:
-        st.markdown("### Restablecimiento de Credenciales")
+        st.markdown("<h3 style='color: #000000 !important;'>Restablecimiento de Credenciales</h3>", unsafe_allow_html=True)
         rec_user = st.text_input("Usuario corporativo:")
         rec_resp = st.text_input("Respuesta secreta:")
         new_pass_reset = st.text_input("Nueva contraseña:", type="password")
@@ -115,7 +115,7 @@ if not st.session_state.autenticado:
             if exito: st.success(msg)
             else: st.error(msg)
 
-# INTERFAZ WEB INTERNA
+# INTERFAZ WEB INTERNA (LOGUEADO)
 else:
     st.sidebar.markdown("### 🗂️ Navegación")
     seccion = st.sidebar.radio(
@@ -137,7 +137,7 @@ else:
     ]
 
     if seccion == "📋 Expedientes Electrónicos":
-        st.title("📋 Repositorio de Expedientes Electrónicos")
+        st.markdown("<h1 style='color: #000000 !important;'>📋 Repositorio de Expedientes Electrónicos</h1>", unsafe_allow_html=True)
         
         busqueda_col1, busqueda_col2 = st.columns([2, 1])
         with busqueda_col1:
@@ -194,11 +194,11 @@ else:
                         st.warning("Matrícula y Nombre obligatorios.")
 
     elif seccion == "📅 Agenda de Citas":
-        st.title("📅 Agenda de Citas del Consultorio")
+        st.markdown("<h1 style='color: #000000 !important;'>📅 Agenda de Citas del Consultorio</h1>", unsafe_allow_html=True)
         col_1, col_2 = st.columns([2, 1])
         
         with col_1:
-            st.subheader("Citas Registradas")
+            st.markdown("<h3 style='color: #000000 !important;'>Citas Registradas</h3>", unsafe_allow_html=True)
             df_citas_completas = obtener_dataframe("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
                 FROM citas c JOIN expedientes e ON c.expediente_id = e.id 
@@ -210,7 +210,7 @@ else:
                 st.info("No hay citas agendadas.")
                 
         with col_2:
-            st.subheader("Agendar Nueva Cita")
+            st.markdown("<h3 style='color: #000000 !important;'>Agendar Nueva Cita</h3>", unsafe_allow_html=True)
             df_pacientes = obtener_dataframe("SELECT id, nombre, matricula FROM expedientes")
             if not df_pacientes.empty:
                 lista_pacientes = {f"{row['nombre']} ({row['matricula']})": row['id'] for _, row in df_pacientes.iterrows()}

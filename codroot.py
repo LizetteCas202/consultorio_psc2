@@ -42,7 +42,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # Reparación/Limpieza de esquemas antiguos
+        # REPARACIÓN AUTOMÁTICA: Limpieza de esquemas antiguos para evitar errores estructurales
         cursor.execute("DROP TABLE IF EXISTS expedientes_old")
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expedientes'")
         if cursor.fetchone():
@@ -101,7 +101,7 @@ if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = "
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
-# Mapeo maestro exclusivo: Divisiones del Campus Chontalpa y sus respectivas Carreras
+# Mapeo maestro exclusivo: Divisiones y Carreras de la UJAT (Campus Chontalpa)
 CARRERAS_POR_DIVISION = {
     "DACYTI": [
         "Licenciatura en Tecnologías de la Información",
@@ -125,16 +125,16 @@ CARRERAS_POR_DIVISION = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - REMEDIACIÓN DE AUTOCOMPLETADO Y CONTENEDORES ESTILO NOTION
+# INYECCIÓN MAESTRA DE CSS - REMEDIACIÓN DE AUTOCOMPLETADO Y INPUTS OSCUROS
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* FONDO GENERAL */
+    /* 1. CONTROL DE FONDO GENERAL DE LA APLICACIÓN */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stCanvas"] {
         background-color: #f1f5f9 !important; 
     }
 
-    /* TEXTO GENERAL EN TONOS OSCUROS LEGIBLES */
+    /* 2. TEXTO GENERAL EN TONOS OSCUROS LEGIBLES */
     h1, h2, h3, h4, h5, h6, p, span, label, strong, li, 
     [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMarkdownContainer"] h2,
@@ -156,8 +156,8 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* CONFIGURACIÓN DE BOTONES */
-    .stButton button, div.custom-card-form button {
+    /* 3. CONFIGURACIÓN DE BOTONES (TEXTO VISIBLE BLANCO) */
+    .stButton button, div[data-testid="stForm"] button, div.custom-card-form button {
         background-color: #0f172a !important;
         color: #ffffff !important;             
         font-weight: 600 !important;
@@ -166,16 +166,16 @@ st.markdown("""
         transition: all 0.2s ease-in-out !important;
     }
     
-    .stButton button *, div.custom-card-form button * {
+    .stButton button *, div[data-testid="stForm"] button *, div.custom-card-form button * {
         color: #ffffff !important;
     }
 
-    .stButton button:hover {
+    .stButton button:hover, div[data-testid="stForm"] button:hover {
         background-color: #1e293b !important;  
         border-color: #1e293b !important;
     }
 
-    /* INPUTS Y BLOQUEO DE AUTOFILL OSCURO */
+    /* 4. CONFIGURACIÓN CAJAS DE ENTRADA DE TEXTO Y BLOQUEO DE AUTOFILL OSCURO */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
@@ -199,7 +199,7 @@ st.markdown("""
         background-color: #ffffff !important;
     }
 
-    /* MENÚS DESPLEGABLES CON FONDO CLARO */
+    /* 5. DISEÑO DE MENÚS DESPLEGABLES CON FONDO CLARO */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
@@ -227,8 +227,13 @@ st.markdown("""
         color: #0284c7 !important;            
     }
 
-    /* TARJETA CONTENEDORA ESTILO NOTION PARA SUSTITUIR EL ST.FORM PROBLEMÁTICO */
-    .custom-card-form { 
+    div[data-testid="stNumberInput"] button {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    /* 6. DISEÑO CONTENEDOR TIPO HOJA DE TRABAJO (SIDE-PEEK) */
+    div[data-testid="stForm"], .custom-card-form { 
         background-color: #ffffff !important; 
         border: 1px solid #e2e8f0 !important;
         box-shadow: -4px 4px 20px rgba(15, 23, 42, 0.06) !important;
@@ -237,21 +242,13 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* FORMULARIOS ESTÁNDAR */
-    div[data-testid="stForm"] {
-        background-color: #ffffff !important; 
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        padding: 24px !important;
-    }
-
-    /* BARRA LATERAL */
+    /* 7. BARRA LATERAL IZQUIERDA */
     [data-testid="stSidebar"] { 
         background-color: #f8fafc !important; 
         border-right: 1px solid #e2e8f0 !important; 
     }
 
-    /* TABLAS ESTILO NOTION */
+    /* 8. TABLAS DE DATOS ESTILO NOTION */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -309,7 +306,7 @@ if not st.session_state.autenticado:
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Cabecera Institucional
+    # Cabecera Fija del Consultorio DACYTI
     st.markdown(f"""
         <div class="constante-header-container">
             <img src="{LOGO_UJAT_URL}" width="35">
@@ -317,7 +314,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Navegación Lateral
+    # Navegación Lateral Módulos
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
     seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
@@ -352,7 +349,7 @@ else:
 
             st.markdown("---")
 
-            # Cargar citas actuales
+            # EXTRAER CITAS DESDE SQLITE
             conn = conectar_db_local()
             citas_tabla = pd.read_sql_query("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
@@ -392,7 +389,7 @@ else:
 
             st.markdown("---")
 
-            # Calendarios Interactivos
+            # INTERFAZ DE CALENDARIOS INTERACTIVOS
             st.markdown("#### 📅 Visualizador de Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
@@ -459,7 +456,7 @@ else:
                             st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK (REPARADA)
+        # COLUMNA DERECHA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
@@ -479,9 +476,9 @@ else:
                 
                 st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Complete los datos del alumno institucional.</p>", unsafe_allow_html=True)
 
-                # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE (SOLUCIÓN SIN ST.FORM PARA EVITAR CRASH) ---
+                # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    # Usamos un contenedor HTML con estilos CSS para mantener la misma estética "Notion Card"
+                    # Nota: Para las divisiones/carreras en nuevo expediente, usamos un card estético que sí permite cambios dinámicos libres
                     st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
                     
                     st.markdown("##### 👤 Datos Personales y Académicos")
@@ -493,11 +490,9 @@ else:
                     with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                     
                     # --- FILTRADO EXCLUSIVO CAMPUS CHONTALPA ---
-                    # Al estar libre de st.form, este selectbox actualiza instantáneamente el renderizado sin errores
                     lista_divisiones = ["DACYTI", "DAIA", "DACB"]
                     exp_div = st.selectbox("División Académica:", options=lista_divisiones)
                     
-                    # Las carreras se actualizan de inmediato reactivamente según la división elegida
                     lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
                     exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada)
                     
@@ -534,7 +529,7 @@ else:
                     
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ACCIÓN: EVALUACIÓN CLÍNICA / CITAS ---
+                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -563,35 +558,70 @@ else:
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
 
-                # --- ACCIÓN: AGENDAR NUEVA CITA ---
+                # --- ACCIÓN: AGENDAR NUEVA CITA (OPTIMIZACIÓN TOTAL POR MATRÍCULA) ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                    conn = conectar_db_local()
-                    expedientes_df = pd.read_sql_query("SELECT id, nombre, matricula FROM expedientes", conn)
-                    conn.close()
-
-                    with st.form("form_nueva_cita_notion"):
-                        if not expedientes_df.empty:
-                            opciones_pacientes = {f"{r['nombre']} ({r['matricula']})": r['id'] for _, r in expedientes_df.iterrows()}
-                            paciente_sel = st.selectbox("Seleccionar Alumno Paciente:", list(opciones_pacientes.keys()))
-                            fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
-                            hora_cita = st.time_input("Hora de la Consulta:")
-                            motivo_cita = st.text_area("Motivo o Descripción de Sesión:")
+                    st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
+                    st.markdown("##### 🔍 Buscar Alumno Paciente")
+                    
+                    mat_buscar = st.text_input(
+                        "Ingrese la Matrícula del Alumno:", 
+                        value="", 
+                        key="input_buscar_matricula_final",
+                        help="Solicite la matrícula al estudiante y digítela aquí"
+                    ).strip()
+                    
+                    if mat_buscar:
+                        conn = conectar_db_local()
+                        alumno_data = conn.cursor().execute(
+                            "SELECT id, nombre, division, carrera FROM expedientes WHERE matricula = ?", 
+                            (mat_buscar,)
+                        ).fetchone()
+                        conn.close()
+                        
+                        if alumno_data:
+                            id_interno, nom_alumno, div_alumno, car_alumno = alumno_data
                             
-                            if st.form_submit_button("Confirmar Cita Médica", use_container_width=True):
-                                conn = conectar_db_local()
-                                cursor = conn.cursor()
-                                fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
-                                cursor.execute("""
-                                    INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
-                                    VALUES (?, ?, 'Pendiente', ?)
-                                """, (opciones_pacientes[paciente_sel], fecha_hora_str, motivo_cita))
-                                conn.commit()
-                                conn.close()
-                                st.session_state.side_peek_modo = None
-                                st.rerun()
+                            st.markdown(f"""
+                                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px; margin: 12px 0;">
+                                    <span style="color: #166534; font-weight: 600; font-size: 14px;">✅ Alumno Localizado Exitosamente</span><br>
+                                    <small style="color: #1e3a1e; font-weight: 500;">
+                                        <b>Nombre:</b> {nom_alumno}<br>
+                                        <b>Ubicación:</b> {div_alumno} — {car_alumno}
+                                    </small>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            with st.form("form_confirmar_nueva_cita_final"):
+                                fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
+                                hora_cita = st.time_input("Hora de la Consulta:")
+                                motivo_cita = st.text_area("Motivo o Descripción de Sesión:", placeholder="Ej. Ansiedad escolar...")
+                                
+                                if st.form_submit_button("Confirmar y Agendar Cita", use_container_width=True):
+                                    conn = conectar_db_local()
+                                    cursor = conn.cursor()
+                                    fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
+                                    
+                                    cursor.execute("""
+                                        INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
+                                        VALUES (?, ?, 'Pendiente', ?)
+                                    """, (id_interno, fecha_hora_str, motivo_cita))
+                                    conn.commit()
+                                    conn.close()
+                                    
+                                    st.success(f"¡Cita agendada correctamente!")
+                                    st.session_state.side_peek_modo = None
+                                    st.rerun()
                         else:
-                            st.warning("No existen expedientes registrados para asignar la cita.")
-                            st.form_submit_button("Aceptar", disabled=True)
+                            st.markdown(f"""
+                                <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; margin: 12px 0;">
+                                    <span style="color: #991b1b; font-weight: 600; font-size: 14px;">❌ Matrícula No Registrada</span><br>
+                                    <small style="color: #7f1d1d;">La matrícula <b>"{mat_buscar}"</b> no coincide con ningún expediente activo.</small>
+                                </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.info("💡 Por favor, tipee una matrícula institucional en la parte superior para desplegar los controles de agenda.")
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================
     # OTROS MÓDULOS SECUNDARIOS

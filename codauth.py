@@ -95,3 +95,4 @@ def inicializar_usuario_admin():
         pass
     finally:
         if conn: conn.close()
+        

@@ -91,148 +91,170 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN DE CSS - REDISEÑO DE FONDO CLARO CON CAMPOS OSCUROS DE ALTA VISIBILIDAD
+# INYECCIÓN MAESTRA DE CSS - TEMA REPOSADO (FONDO GRIS CLARO + TEXTOS AZUL MARINO)
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. RESTAURACIÓN DEL FONDO CLARO GLOBAL (ESTILO NOTION) */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-color: #ffffff !important;
-        color: #191919 !important;
+    /* 1. CONTROL DE FONDO GENERAL DE LA APLICACIÓN (EVITA FORCE DEL MODO OSCURO) */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stCanvas"] {
+        background-color: #f1f5f9 !important; /* Gris claro reposado que no cansa la vista */
+    }
+
+    /* 2. TIPOGRAFÍA EN AZUL MARINO PROFUNDO PARA MÁXIMA VISIBILIDAD */
+    .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, 
+    .main p, .main span, .main label, .main strong, [data-testid="stMarkdownContainer"] p {
+        color: #0f172a !important; /* Azul marino institucional */
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
 
-    /* Forzar que los títulos de la app sean siempre oscuros y legibles en el fondo blanco */
-    .main h1, .main h2, .main h3, .main h4, .main p, .main span, .main strong {
-        color: #191919 !important;
-    }
-
-    /* 2. DISEÑO DE LAS ETIQUETAS (EDAD, CARRERA, ETC.) EXTRALLEGIBLES */
-    [data-testid="stWidgetLabel"] p, 
-    .stWidgetFormLabel label,
-    div[data-testid="stForm"] label {
-        color: #1e293b !important; /* Azul oscuro/negro para las etiquetas externas */
-        font-weight: 600 !important;
-        font-size: 14px !important;
-    }
-
-    /* 3. BANNERS/CAJAS DE SELECCIÓN OSCURAS CON LETRAS GRIS CLARO */
-    div[data-baseweb="select"] > div, 
+    /* 3. BLINDAJE TOTAL DE CAMPOS DE TEXTO Y BANNERS (LOGIN + FORMULARIOS DE INICIO) */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
+    .stTextInput input, .stPasswordInput input, .stTextArea textarea,
     div[data-testid="stMarkdownContainer"] input {
-        background-color: #1e293b !important; /* Fondo oscuro para el banner de selección */
-        color: #e2e8f0 !important;            /* Letras gris claro fijas */
-        border: 1px solid #334155 !important;
+        background-color: #ffffff !important; /* Cajas blancas limpias */
+        color: #0f172a !important;            /* Texto digitado en Azul Marino Intenso */
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        -webkit-text-fill-color: #0f172a !important; /* Parche para navegadores WebKit/Chrome */
+    }
+
+    /* 4. CONTROL DE DROPDOWNS Y SELECTORES (GÉNERO, CARRERA, DIVISIÓN, ETC.) */
+    div[data-baseweb="select"] > div {
+        background-color: #ffffff !important; /* Fondo del banner de selección */
+        color: #0f172a !important;            /* Texto del banner seleccionado */
+        border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
     }
-
-    /* Asegurar que los botones de incremento/decremento en el campo de Edad se vean bien */
-    div[data-testid="stNumberInput"] button {
-        background-color: #334155 !important;
-        color: #ffffff !important;
-        border: none !important;
-    }
-
-    /* Forzar el color de las opciones desplegables dentro del menú flotante */
+    
+    /* Control de las opciones dentro de la lista flotante desplegable */
     div[data-baseweb="menu"] {
-        background-color: #1e293b !important;
-        border: 1px solid #334155 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
     }
     div[data-baseweb="menu"] li, div[role="listbox"] div {
-        color: #e2e8f0 !important; /* Letras gris claro en la lista desplegable */
-        background-color: #1e293b !important;
+        color: #0f172a !important;            /* Letras oscuras en el despliegue */
+        background-color: #ffffff !important;
     }
     div[data-baseweb="menu"] li:hover {
-        background-color: #475569 !important; /* Efecto hover elegante */
-        color: #ffffff !important;
+        background-color: #e2e8f0 !important; /* Hover gris sutil */
+        color: #0f172a !important;
     }
 
-    /* 4. PANEL LATERAL DESLIZABLE (SIDE-PEEK RESPETANDO EL ENTORNO CLARO) */
+    /* Botones de incremento y decremento de Edad */
+    div[data-testid="stNumberInput"] button {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    /* 5. DISEÑO DE FORMULARIOS SIDE-PEEK (AESTHETIC NOTION CARD) */
     div[data-testid="stForm"] { 
-        background-color: #f8fafc !important; /* Fondo gris claro Notion card */
+        background-color: #ffffff !important; /* Fondo de tarjeta blanco pulcro */
         border: 1px solid #e2e8f0 !important;
-        box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: -4px 4px 20px rgba(15, 23, 42, 0.08) !important;
         padding: 24px !important;
         border-radius: 8px !important;
     }
-
-    /* 5. BARRA LATERAL IZQUIERDA DE NAVEGACIÓN */
-    [data-testid="stSidebar"] { 
-        background-color: #f4f5f6 !important; 
-        border-right: 1px solid #e9e9e8 !important; 
-    }
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] p {
-        color: #1e293b !important;
+    
+    /* Corregir etiquetas específicas de formularios Streamlit */
+    div[data-testid="stForm"] label, 
+    div[data-testid="stForm"] .stWidgetFormLabel p {
+        color: #0f172a !important;
         font-weight: 600 !important;
     }
 
-    /* 6. TABLA ESTRUCTURADA ESTILO NOTION */
+    /* 6. BARRA LATERAL IZQUIERDA (MÓDULOS DE GESTIÓN) */
+    [data-testid="stSidebar"] { 
+        background-color: #f8fafc !important; 
+        border-right: 1px solid #e2e8f0 !important; 
+    }
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Botón Cerrar Sesión */
+    [data-testid="stSidebar"] .stButton button {
+        color: #ffffff !important;
+        background-color: #475569 !important;
+        border: none !important;
+    }
+    [data-testid="stSidebar"] .stButton button:hover {
+        background-color: #334155 !important;
+    }
+
+    /* 7. TABLA DE CITAS CON ESTILO LIMPIO */
     .constante-header-container {
         display: flex;
         align-items: center;
         gap: 15px;
         margin-bottom: 25px;
-        border-bottom: 1px solid #e9e9e8;
+        border-bottom: 1px solid #e2e8f0;
         padding-bottom: 12px;
     }
-    .constante-header-container h1 { margin: 0 !important; font-size: 22px; color: #191919 !important; }
+    .constante-header-container h1 { margin: 0 !important; font-size: 22px; color: #0f172a !important; }
     
     .notion-table-container {
-        border: 1px solid #e9e9e8;
+        border: 1px solid #e2e8f0;
         border-radius: 6px;
         overflow: hidden;
         margin-bottom: 20px;
+        background-color: #ffffff;
     }
     
     .notion-table-header {
         display: flex; 
-        background-color: #f7f7f5; 
+        background-color: #f1f5f9; 
         font-weight: 600; 
         padding: 10px 14px; 
-        border-bottom: 1px solid #e9e9e8; 
+        border-bottom: 1px solid #e2e8f0; 
         font-size: 13px; 
-        color: #6a6a65 !important;
+        color: #475569 !important;
     }
     
     .notion-table-row {
         display: flex;
         align-items: center;
         padding: 8px 14px;
-        color: #191919 !important;
+        color: #0f172a !important;
     }
     
-    /* Badges de estado de cita */
+    /* Badges de estados clínicos */
     .status-badge {
         padding: 2px 8px;
         border-radius: 4px;
         font-size: 12px;
         font-weight: 500;
     }
-    .status-pendiente { background-color: #fdecc8; color: #b35900 !important; }
-    .status-realizada { background-color: #e2f2e4; color: #2e6930 !important; }
-    .status-cancelada { background-color: #ffe2dd; color: #cc3333 !important; }
+    .status-pendiente { background-color: #fef3c7; color: #d97706 !important; }
+    .status-realizada { background-color: #dcfce7; color: #15803d !important; }
+    .status-cancelada { background-color: #fee2e2; color: #b91c1c !important; }
     
-    /* Botones de acción principales */
+    /* Botones de Acción de la página */
     .main .stButton button {
         background-color: #ffffff !important;
-        color: #191919 !important;
-        border: 1px solid #dcdbdb !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
         font-size: 13px !important;
+        font-weight: 500 !important;
     }
     .main .stButton button:hover {
-        background-color: #f4f5f6 !important;
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. SISTEMA DE AUTENTICACIÓN ---
+# --- 4. PORTAL DE ACCESO (LOGIN) ---
 if not st.session_state.autenticado:
     st.markdown('<div style="max-width:400px; margin:auto; padding-top:100px;">', unsafe_allow_html=True)
     st.image(LOGO_UJAT_URL, width=90)
-    st.markdown("### Acceso al Portal Clínico DACYTI")
+    st.markdown("<h2 style='color:#0f172a !important;'>Acceso al Portal Clínico DACYTI</h2>", unsafe_allow_html=True)
     u_login = st.text_input("Usuario Corporativo:")
     p_login = st.text_input("Contraseña:", type="password")
     if st.button("Ingresar al Sistema", use_container_width=True):
@@ -249,11 +271,11 @@ if not st.session_state.autenticado:
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Cabecera Institucional Fija
+    # Cabecera Fija Institucional
     st.markdown(f"""
         <div class="constante-header-container">
             <img src="{LOGO_UJAT_URL}" width="35">
-            <h1 style="color:#191919 !important;">Consultorio Psicológico DACYTI</h1>
+            <h1 style="color:#0f172a !important;">Consultorio Psicológico DACYTI</h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -278,7 +300,7 @@ else:
             col_izquierda = st.container()
 
         # -----------------------------------------------------------------------------
-        # COLUMNA IZQUIERDA: PLANNER PRINCIPAL
+        # COLUMNA IZQUIERDA: PLANNER DE TRABAJO
         # -----------------------------------------------------------------------------
         with col_izquierda:
             st.markdown("### Panel de la Agenda e Historial Clínico")
@@ -309,10 +331,10 @@ else:
                 st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
                 st.markdown("""
                     <div class="notion-table-header">
-                        <div style="flex: 2; padding-left: 5px; color:#6a6a65;">Aa Nombre del Paciente</div>
-                        <div style="flex: 1.5; color:#6a6a65;">📅 Fecha y Hora</div>
-                        <div style="flex: 1; color:#6a6a65;">✨ Estado</div>
-                        <div style="flex: 1; text-align: center; color:#6a6a65;">⚙️ Gestión</div>
+                        <div style="flex: 2; padding-left: 5px;">Aa Nombre del Paciente</div>
+                        <div style="flex: 1.5;">📅 Fecha y Hora</div>
+                        <div style="flex: 1;">✨ Estado</div>
+                        <div style="flex: 1; text-align: center;">⚙️ Gestión</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -325,7 +347,7 @@ else:
                     with c_fila1:
                         st.markdown(f"<div class='notion-table-row'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
                     with c_fila2:
-                        st.markdown(f"<div class='notion-table-row' style='color:#5a5d56;'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='notion-table-row'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
                     with c_fila3:
                         st.markdown(f"<div class='notion-table-row'><span class='status-badge {clase_badge}'>{fila['estado']}</span></div>", unsafe_allow_html=True)
                     with c_fila4:
@@ -335,7 +357,7 @@ else:
                             st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.markdown('<div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #191919; border-radius: 4px; font-size: 14px;">No se encuentran registros de citas programadas para hoy.</div>', unsafe_allow_html=True)
+                st.markdown('<div style="background-color: #ffffff; padding: 12px; border-left: 4px solid #475569; color: #0f172a; border-radius: 4px; font-size: 14px; border: 1px solid #e2e8f0;">No se encuentran registros de citas programadas para hoy.</div>', unsafe_allow_html=True)
 
             st.markdown("---")
 
@@ -371,7 +393,7 @@ else:
                     for dia_idx, f_dia in enumerate(semana):
                         with cols_dias[dia_idx]:
                             if f_dia.month == mes_sel:
-                                st.markdown(f"<span style='color:#191919; font-weight:500; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
+                                st.markdown(f"<span style='color:#0f172a; font-weight:500; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
                                 f_buscar = f_dia.strftime("%Y-%m-%d")
                                 if f_buscar in diccionario_citas_global:
                                     for cita_dia in diccionario_citas_global[f_buscar]:
@@ -380,7 +402,7 @@ else:
                                             st.session_state.side_peek_modo = "VER_CITA"
                                             st.session_state.cita_seleccionada_id = cita_dia['id']
                                             st.rerun()
-                    st.markdown("<hr style='margin:4px 0; border-top:1px dashed #e3e2e0;'>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin:4px 0; border-top:1px dashed #cbd5e1;'>", unsafe_allow_html=True)
 
             elif tipo_formato == "Semanal (Horario Laboral L-V)":
                 inicio_semana = fecha_pivote - timedelta(days=fecha_pivote.weekday())
@@ -392,7 +414,7 @@ else:
                     f_buscar_semana = fecha_dia_actual.strftime("%Y-%m-%d")
                     
                     with cols_semana[idx]:
-                        st.markdown(f"<center><div style='background-color:#f7f7f5; padding:6px; border-radius:4px; color:#191919;'><strong>{nom_dia}</strong><br><small style='color:#6a6a65;'>{fecha_dia_actual.day} de {calendar.month_name[fecha_dia_actual.month][:3]}</small></div></center>", unsafe_allow_html=True)
+                        st.markdown(f"<center><div style='background-color:#ffffff; padding:6px; border:1px solid #e2e8f0; border-radius:4px; color:#0f172a;'><strong>{nom_dia}</strong><br><small style='color:#475569;'>{fecha_dia_actual.day} de {calendar.month_name[fecha_dia_actual.month][:3]}</small></div></center>", unsafe_allow_html=True)
                         st.markdown("<br>", unsafe_allow_html=True)
                         
                         if f_buscar_semana in diccionario_citas_global:
@@ -403,21 +425,21 @@ else:
                                     st.session_state.cita_seleccionada_id = cita_sem['id']
                                     st.rerun()
                         else:
-                            st.markdown("<center><span style='color:#a0a0a0; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
+                            st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO (FONDO CLARO)
+        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO (TEMA REPOSADO CLARO)
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
                 c_tit, c_close = st.columns([3.8, 1.6])
                 with c_tit:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
                 with c_close:
                     if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
                         st.session_state.side_peek_modo = None
@@ -486,7 +508,7 @@ else:
                                 conn.close()
                                 st.session_state.side_peek_modo = None
                                 st.session_state.cita_seleccionada_id = None
-                                r_rerun()
+                                st.rerun()
 
                 # --- AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":

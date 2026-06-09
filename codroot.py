@@ -30,6 +30,8 @@ def inicializar_sistema_db():
     conn = conectar_db_local()
     if conn:
         cursor = conn.cursor()
+        
+        # Crear tabla de usuarios si no existe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 usuario TEXT PRIMARY KEY,
@@ -39,6 +41,17 @@ def inicializar_sistema_db():
                 respuesta_secreta_hash TEXT
             )
         """)
+        
+        # REPARACIÓN AUTOMÁTICA: Limpieza de esquemas antiguos para evitar el sqlite3.OperationalError
+        cursor.execute("DROP TABLE IF EXISTS expedientes_old")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expedientes'")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(expedientes)")
+            columnas = cursor.fetchall()
+            if len(columnas) < 12:
+                cursor.execute("ALTER TABLE expedientes RENAME TO expedientes_old")
+        
+        # Crear tabla de expedientes con el esquema maestro completo
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expedientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +68,8 @@ def inicializar_sistema_db():
                 etiquetas TEXT
             )
         """)
+        
+        # Crear tabla de citas
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,6 +82,7 @@ def inicializar_sistema_db():
             )
         """)
         
+        # Insertar usuario administrador por defecto si no existe
         cursor.execute("SELECT * FROM usuarios WHERE usuario = 'psicologa.sara'")
         if not cursor.fetchone():
             cursor.execute("""
@@ -76,6 +92,7 @@ def inicializar_sistema_db():
         conn.commit()
         conn.close()
 
+# Inicializar Base de Datos
 inicializar_sistema_db()
 
 # --- 3. CONTROL DE ESTADOS DE SESIÓN ---
@@ -84,6 +101,7 @@ if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = "
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
+# Estructura de Divisiones y Carreras de la UJAT
 ESTRUCTURA_UJAT = {
     "DACYTI": ["Licenciatura en Tecnologías de la Información", "Licenciatura en Sistemas Computacionales", "Licenciatura en Telemática", "Ingeniería en Informática Administrativa"],
     "DAIA": ["Ingeniería Mecánica Eléctrica", "Ingeniería Civil", "Ingeniería Química", "Ingeniería Ambiental"],
@@ -91,16 +109,16 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - REPARACIÓN DE MENÚS DESPLEGABLES FLOTANTES (DROPDOWNS)
+# INYECCIÓN MAESTRA DE CSS - REPARACIÓN TOTAL DE CONTRASTE Y DROPDOWNS
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
     /* 1. CONTROL DE FONDO GENERAL DE LA APLICACIÓN */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stCanvas"] {
-        background-color: #f1f5f9 !important; /* Gris claro suave */
+        background-color: #f1f5f9 !important; 
     }
 
-    /* 2. REPARACIÓN RADICAL DE TÍTULOS Y TEXTOS (FORZADO A AZUL MARINO) */
+    /* 2. TEXTO GENERAL EN TONOS OSCUROS LEGIBLES */
     h1, h2, h3, h4, h5, h6, p, span, label, strong, li, 
     [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMarkdownContainer"] h2,
@@ -113,7 +131,7 @@ st.markdown("""
     .stTextInput label p,
     .stTextArea label p,
     .stNumberInput label p {
-        color: #0f172a !important; /* Azul marino institucional */
+        color: #0f172a !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
 
@@ -122,25 +140,27 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* 3. SOLUCIÓN COMPLETA PARA BOTONES */
-    .stButton button {
-        color: #f8fafc !important;             
+    /* 3. REPARACIÓN RADICAL DE BOTONES (TEXTO VISIBLE BLANCO) */
+    .stButton button, div[data-testid="stForm"] button {
+        background-color: #0f172a !important;
+        color: #ffffff !important;             
         font-weight: 600 !important;
+        border: 1px solid #0f172a !important;
         border-radius: 6px !important;
         transition: all 0.2s ease-in-out !important;
     }
     
-    .stButton button p {
-        color: #f8fafc !important;
-    }
-
-    .stButton button:hover {
-        background-color: #1e293b !important;  
+    /* Forzar que cualquier párrafo o contenedor interno del botón sea blanco */
+    .stButton button *, div[data-testid="stForm"] button * {
         color: #ffffff !important;
-        border-color: #475569 !important;
     }
 
-    /* 4. BLINDAJE DE CAJAS DE TEXTO (INPUTS Y TEXTAREAS) */
+    .stButton button:hover, div[data-testid="stForm"] button:hover {
+        background-color: #1e293b !important;  
+        border-color: #1e293b !important;
+    }
+
+    /* 4. CONFIGURACIÓN CAJAS DE ENTRADA DE TEXTO */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
@@ -152,47 +172,51 @@ st.markdown("""
         -webkit-text-fill-color: #0f172a !important; 
     }
 
-    /* 5. FIX TOTAL PARA MENÚS DESPLEGABLES (GÉNERO, CARRERA, DIVISIÓN, SEMESTRE) */
-    /* Caja contenedora cerrada del selectbox */
+    /* 5. DISEÑO DE MENÚS DESPLEGABLES CON FONDO CLARO (ARREGLA LA VISTA OSCURA) */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
         border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
     }
+    
+    /* El contenedor del texto seleccionado dentro de la caja */
+    div[data-baseweb="select"] aria-live {
+        color: #0f172a !important;
+    }
+    
+    div[data-baseweb="select"] span {
+        color: #0f172a !important;
+    }
 
-    /* Forzar el contenedor flotante de la lista desplegable (popover/menu) */
+    /* Lista flotante de opciones al hacer click */
     div[data-baseweb="popover"], div[data-baseweb="menu"], [role="listbox"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
     }
 
-    /* Forzar los elementos individuales de la lista (las opciones a elegir) */
     div[data-baseweb="menu"] li, 
     [role="listbox"] li, 
-    [role="option"], 
-    div[data-baseweb="popover"] div {
+    [role="option"],
+    ul[role="listbox"] span {
         color: #0f172a !important;            
         background-color: #ffffff !important;
         font-weight: 500 !important;
     }
 
-    /* Efecto al pasar el cursor sobre las opciones del desplegable */
+    /* Opción apuntada por el mouse */
     div[data-baseweb="menu"] li:hover, 
-    [role="option"]:hover,
-    div[aria-selected="true"] {
-        background-color: #f1f5f9 !important; /* Gris claro de selección */
-        color: #0284c7 !important;            /* Resaltado en azul clínico */
+    [role="option"]:hover {
+        background-color: #f1f5f9 !important; 
+        color: #0284c7 !important;            
     }
 
-    /* Botones de incremento del número de edad */
     div[data-testid="stNumberInput"] button {
         background-color: #e2e8f0 !important;
         color: #0f172a !important;
     }
 
-    /* 6. DISEÑO DEL CONTENEDOR SIDE-PEEK (TARJETA TIPO NOTION CAJA BLANCA) */
+    /* 6. DISEÑO CONTENEDOR TIPO HOJA DE TRABAJO (SIDE-PEEK) */
     div[data-testid="stForm"] { 
         background-color: #ffffff !important; 
         border: 1px solid #e2e8f0 !important;
@@ -200,27 +224,14 @@ st.markdown("""
         padding: 24px !important;
         border-radius: 8px !important;
     }
-    
-    div[data-testid="stForm"] h4, 
-    div[data-testid="stForm"] p, 
-    div[data-testid="stForm"] label {
-        color: #0f172a !important;
-    }
 
     /* 7. BARRA LATERAL IZQUIERDA */
     [data-testid="stSidebar"] { 
         background-color: #f8fafc !important; 
         border-right: 1px solid #e2e8f0 !important; 
     }
-    [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-        color: #0f172a !important;
-    }
 
-    /* 8. TABLAS, CABECERAS Y CONTENEDORES DE AVISOS */
+    /* 8. TABLAS DE DATOS ESTILO NOTION */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -254,16 +265,6 @@ st.markdown("""
         padding: 8px 14px;
         color: #0f172a !important;
     }
-    
-    .status-badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .status-pendiente { background-color: #fef3c7; color: #d97706 !important; }
-    .status-realizada { background-color: #dcfce7; color: #15803d !important; }
-    .status-cancelada { background-color: #fee2e2; color: #b91c1c !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -288,7 +289,7 @@ if not st.session_state.autenticado:
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Cabecera Fija Institucional
+    # Cabecera Fija del Consultorio DACYTI
     st.markdown(f"""
         <div class="constante-header-container">
             <img src="{LOGO_UJAT_URL}" width="35">
@@ -296,9 +297,9 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Navegación Lateral Izquierda
+    # Navegación Lateral Módulos
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio ", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
+    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
@@ -307,18 +308,15 @@ else:
         st.rerun()
 
     # =================================================================================
-    # MÓDULO: INICIO Y PLANNER DINÁMICO
+    # MÓDULO MAIN: INICIO Y PLANNER DINÁMICO
     # =================================================================================
-    if seccion == "🏠 Inicio ":
+    if seccion == "🏠 Inicio y Planner":
         
         if st.session_state.side_peek_modo:
-            col_izquierda, col_derecha = st.columns([60, 40], gap="medium")
+            col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
         else:
             col_izquierda = st.container()
 
-        # -----------------------------------------------------------------------------
-        # COLUMNA IZQUIERDA: PLANNER DE TRABAJO
-        # -----------------------------------------------------------------------------
         with col_izquierda:
             st.markdown("### Panel de la Agenda e Historial Clínico")
             
@@ -334,7 +332,7 @@ else:
 
             st.markdown("---")
 
-            # EXTRACCIÓN DE CITAS
+            # EXTRAER CITAS DESDE SQLITE
             conn = conectar_db_local()
             citas_tabla = pd.read_sql_query("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
@@ -356,17 +354,13 @@ else:
                 """, unsafe_allow_html=True)
 
                 for _, fila in citas_tabla.iterrows():
-                    clase_badge = "status-pendiente"
-                    if fila['estado'] == "Realizada": clase_badge = "status-realizada"
-                    elif fila['estado'] == "Cancelada": clase_badge = "status-cancelada"
-
                     c_fila1, c_fila2, c_fila3, c_fila4 = st.columns([2, 1.5, 1, 1])
                     with c_fila1:
                         st.markdown(f"<div class='notion-table-row'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
                     with c_fila2:
                         st.markdown(f"<div class='notion-table-row'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
                     with c_fila3:
-                        st.markdown(f"<div class='notion-table-row'><span class='status-badge {clase_badge}'>{fila['estado']}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='notion-table-row'>{fila['estado']}</div>", unsafe_allow_html=True)
                     with c_fila4:
                         if st.button("Ver Detalle", key=f"open_t_{fila['id']}", use_container_width=True):
                             st.session_state.side_peek_modo = "VER_CITA"
@@ -445,27 +439,27 @@ else:
                             st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO
+        # COLUMNA DERECHA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
-                c_tit, c_close = st.columns([3.5, 1.5])
+                c_tit, c_close = st.columns([3.2, 1.8])
                 with c_tit:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Abrir Nuevo Expediente Clínico</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Abrir Nuevo Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica Semanal</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda de Consulta</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda</h4>", unsafe_allow_html=True)
                 with c_close:
                     if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
                         st.session_state.side_peek_modo = None
                         st.session_state.cita_seleccionada_id = None
                         st.rerun()
                 
-                st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Complete los datos requeridos del alumno institucional.</p>", unsafe_allow_html=True)
+                st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Complete los datos del alumno institucional.</p>", unsafe_allow_html=True)
 
-                # --- NUEVO EXPEDIENTE ---
+                # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                     with st.form("form_nuevo_expediente_notion"):
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
@@ -487,20 +481,24 @@ else:
                         if st.form_submit_button("Registrar Expediente Electrónico", use_container_width=True):
                             if exp_mat.strip() and exp_nom.strip():
                                 conn = conectar_db_local()
-                                try:
-                                    tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
-                                    conn.cursor().execute("""
-                                        INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
-                                    conn.commit()
-                                    st.session_state.side_peek_modo = None
-                                    st.rerun()
-                                except sqlite3.IntegrityError:
-                                    st.error("La matrícula ya existe.")
-                                finally: conn.close()
+                                if conn:
+                                    try:
+                                        tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
+                                        conn.cursor().execute("""
+                                            INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
+                                        conn.commit()
+                                        st.session_state.side_peek_modo = None
+                                        st.rerun()
+                                    except sqlite3.IntegrityError:
+                                        st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
+                                    finally: 
+                                        conn.close()
+                            else:
+                                st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
 
-                # --- VER / EDITAR CITA SELECCIONADA ---
+                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -529,7 +527,7 @@ else:
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
 
-                # --- AGENDAR NUEVA CITA ---
+                # --- ACCIÓN: AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
                     conn = conectar_db_local()
                     expedientes_df = pd.read_sql_query("SELECT id, nombre, matricula FROM expedientes", conn)
@@ -560,7 +558,7 @@ else:
                             st.form_submit_button("Aceptar", disabled=True)
 
     # =================================================================================
-    # OTROS MÓDULOS DE GESTIÓN
+    # OTROS MÓDULOS SECUNDARIOS
     # =================================================================================
     elif seccion == "📋 Expedientes Electrónicos":
         st.markdown("<h3 style='color:#0f172a !important;'>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)

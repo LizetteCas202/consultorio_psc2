@@ -256,7 +256,6 @@ else:
             c_btn1, c_btn2, _ = st.columns([1, 1, 2])
             with c_btn1:
                 if st.button("➕ Nuevo Expediente", use_container_width=True):
-                    # Si ya estaba abierto, simula la animación de salida/reversa al cambiar a None
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                         st.session_state.side_peek_modo = None
                     else:
@@ -264,7 +263,6 @@ else:
                     st.rerun()
             with c_btn2:
                 if st.button("📅 Agendar Nueva Cita", use_container_width=True):
-                    # Si ya estaba abierto, simula la animación de salida/reversa al cambiar a None
                     if st.session_state.side_peek_modo == "NUEVA_CITA":
                         st.session_state.side_peek_modo = None
                     else:
@@ -394,10 +392,11 @@ else:
                 st.dataframe(matriz_semana, use_container_width=True)
 
         # =================================================================================
-        # RENDERIZADO VISIBLE Y FIJO DE LA VENTANA DE COSTADO (SIDE PEEK)
+        # RENDERIZADO VISIBLE Y FIJO DE LA VENTANA DE COSTADO (SIDE PEEK) CORRECTO
         # =================================================================================
         if col_side_peek and st.session_state.side_peek_modo:
             with col_side_peek:
+                # Todo lo que sigue se va a renderizar DENTRO de la caja Notion gris
                 st.markdown('<div class="side-peek-container">', unsafe_allow_html=True)
                 
                 # Barra Superior de Control
@@ -411,53 +410,51 @@ else:
                         st.rerun()
                 st.markdown("---")
 
-                # --- MODO A: CREAR NUEVO EXPEDIENTE CLINICO (FORZADO VISIBLE) ---
+                # --- MODO A: CREAR NUEVO EXPEDIENTE CLINICO ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                     st.markdown("### 📄 Abrir Nuevo Expediente Clínico")
                     st.caption("Complete todos los campos del alumno universitario")
                     
-                    # Formulario encapsulado explícito
-                    with st.container():
-                        exp_nom = st.text_input("Nombre Completo del Alumno:", key="f_exp_nom")
-                        exp_mat = st.text_input("Matrícula Institucional Única:", key="f_exp_mat")
+                    exp_nom = st.text_input("Nombre Completo del Alumno:", key="f_exp_nom")
+                    exp_mat = st.text_input("Matrícula Institucional Única:", key="f_exp_mat")
+                    
+                    c_side1, c_side2 = st.columns(2)
+                    with c_side1:
+                        exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20, key="f_exp_edad")
+                        exp_gen = st.selectbox("Género Biológico:", ["Masculino", "Femenino", "No Especificado"], key="f_exp_gen")
+                    with c_side2:
+                        exp_div = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()), key="f_exp_div")
+                        exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div], key="f_exp_car")
                         
-                        c_side1, c_side2 = st.columns(2)
-                        with c_side1:
-                            exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20, key="f_exp_edad")
-                            exp_gen = st.selectbox("Género Biológico:", ["Masculino", "Femenino", "No Especificado"], key="f_exp_gen")
-                        with c_side2:
-                            exp_div = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()), key="f_exp_div")
-                            exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div], key="f_exp_car")
-                            
-                        c_side3, c_side4 = st.columns(2)
-                        with c_side3:
-                            exp_sem = st.selectbox("Semestre Activo:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="f_exp_sem")
-                            exp_tel = st.text_input("Teléfono Móvil:", key="f_exp_tel")
-                        with c_side4:
-                            exp_cor = st.text_input("Correo Institucional:", key="f_exp_cor")
-                            exp_tag = st.text_input("Diagnóstico Inicial (Etiquetas separadas por comas):", key="f_exp_tag")
-                            
-                        exp_obs = st.text_area("Motivo de Consulta:", height=120, key="f_exp_obs")
+                    c_side3, c_side4 = st.columns(2)
+                    with c_side3:
+                        exp_sem = st.selectbox("Semestre Activo:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="f_exp_sem")
+                        exp_tel = st.text_input("Teléfono Móvil:", key="f_exp_tel")
+                    with c_side4:
+                        exp_cor = st.text_input("Correo Institucional:", key="f_exp_cor")
+                        exp_tag = st.text_input("Diagnóstico Inicial (Etiquetas separadas por comas):", key="f_exp_tag")
                         
-                        st.markdown('<div class="btn-principal">', unsafe_allow_html=True)
-                        if st.button("Guardar Registro de Expediente", use_container_width=True, key="btn_guardar_exp_final"):
-                            if exp_mat.strip() and exp_nom.strip():
-                                conn = conectar_db_local()
-                                try:
-                                    tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
-                                    conn.cursor().execute("""
-                                        INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
-                                    conn.commit()
-                                    st.success("Expediente guardado en la base de datos con éxito.")
-                                    st.session_state.side_peek_modo = None
-                                    st.rerun()
-                                except sqlite3.IntegrityError:
-                                    st.error("Error: La matrícula ingresada ya se encuentra registrada.")
-                                finally: conn.close()
-                            else: st.warning("Nombre y Matrícula son campos obligatorios.")
-                        st.markdown('</div>', unsafe_allow_html=True)
+                    exp_obs = st.text_area("Motivo de Consulta:", height=120, key="f_exp_obs")
+                    
+                    st.markdown('<div class="btn-principal">', unsafe_allow_html=True)
+                    if st.button("Guardar Registro de Expediente", use_container_width=True, key="btn_guardar_exp_final"):
+                        if exp_mat.strip() and exp_nom.strip():
+                            conn = conectar_db_local()
+                            try:
+                                tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
+                                conn.cursor().execute("""
+                                    INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
+                                conn.commit()
+                                st.success("Expediente guardado con éxito.")
+                                st.session_state.side_peek_modo = None
+                                st.rerun()
+                            except sqlite3.IntegrityError:
+                                st.error("Error: La matrícula ingresada ya existe.")
+                            finally: conn.close()
+                        else: st.warning("Nombre y Matrícula son campos obligatorios.")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                 # --- MODO B: AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
@@ -500,9 +497,6 @@ else:
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
-                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notes_evolucion, e.etiquetas, e.id, e.matricula
-                        FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
-                    """, (st.session_state.cita_seleccionada_id,)).fetchone() if 'notes_evolucion' in [m[1] for m in conn.cursor().execute("PRAGMA table_info(citas)").fetchall()] else conn.cursor().execute("""
                         SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
                         FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
                     """, (st.session_state.cita_seleccionada_id,)).fetchone()
@@ -527,9 +521,7 @@ else:
                         if st.button("Guardar Cambios Clínicos", use_container_width=True, key="btn_actualizar_cita_final"):
                             conn = conectar_db_local()
                             cursor = conn.cursor()
-                            # Validar columna exacta de evolución
-                            col_nota = "notas_evolucion" if "notas_evolucion" in [m[1] for m in cursor.execute("PRAGMA table_info(citas)").fetchall()] else "notes_evolucion"
-                            cursor.execute(f"UPDATE citas SET estado = ?, {col_nota} = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
+                            cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                             cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                             conn.commit()
                             conn.close()
@@ -538,7 +530,8 @@ else:
                             st.session_state.cita_seleccionada_id = None
                             st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
-                        
+                
+                # Cierre correcto del Div del contenedor estilizado
                 st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================

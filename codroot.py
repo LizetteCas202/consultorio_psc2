@@ -31,7 +31,7 @@ def inicializar_sistema_db():
     if conn:
         cursor = conn.cursor()
         
-        # Crear tabla de usuarios si no existe
+        # 1. Crear tabla de usuarios
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 usuario TEXT PRIMARY KEY,
@@ -42,16 +42,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # REPARACIÓN AUTOMÁTICA: Limpieza de esquemas antiguos para evitar errores estructurales
-        cursor.execute("DROP TABLE IF EXISTS expedientes_old")
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expedientes'")
-        if cursor.fetchone():
-            cursor.execute("PRAGMA table_info(expedientes)")
-            columnas = cursor.fetchall()
-            if len(columnas) < 12:
-                cursor.execute("ALTER TABLE expedientes RENAME TO expedientes_old")
-        
-        # Crear tabla de expedientes con el esquema maestro completo
+        # 2. Crear tabla de expedientes con esquema base funcional
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expedientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +60,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # Crear tabla de citas
+        # 3. Crear tabla de citas base
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS citas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,12 +68,33 @@ def inicializar_sistema_db():
                 fecha_hora TEXT,
                 estado TEXT DEFAULT 'Pendiente',
                 motivo TEXT,
-                notas_evolucion TEXT DEFAULT '',
                 FOREIGN KEY(expediente_id) REFERENCES expedientes(id)
             )
         """)
         
-        # Insertar usuario administrador por defecto si no existe
+        # --- 🚨 MIGRACIÓN AUTOMÁTICA EXTRA: EVITAR OPERATIONALERROR ---
+        # Verificamos si la columna 'notas_evolucion' existe en la tabla citas
+        cursor.execute("PRAGMA table_info(citas)")
+        columnas_citas = [col[1] for col in cursor.fetchall()]
+        if "notas_evolucion" not in columnas_citas:
+            try:
+                cursor.execute("ALTER TABLE citas ADD COLUMN notas_evolucion TEXT DEFAULT ''")
+            except: pass
+
+        # Verificamos si la columna 'etiquetas' existe en la tabla expedientes
+        cursor.execute("PRAGMA table_info(expedientes)")
+        columnas_exps = [col[1] for col in cursor.fetchall()]
+        if "etiquetas" not in columnas_exps:
+            try:
+                cursor.execute("ALTER TABLE expedientes ADD COLUMN etiquetas TEXT DEFAULT ''")
+            except: pass
+            
+        if "observaciones" not in columnas_exps:
+            try:
+                cursor.execute("ALTER TABLE expedientes ADD COLUMN observaciones TEXT DEFAULT ''")
+            except: pass
+
+        # Insertar usuario por defecto si no existe
         cursor.execute("SELECT * FROM usuarios WHERE usuario = 'psicologa.sara'")
         if not cursor.fetchone():
             cursor.execute("""
@@ -92,7 +104,7 @@ def inicializar_sistema_db():
         conn.commit()
         conn.close()
 
-# Inicializar Base de Datos
+# Inicializar y reparar Base de Datos automáticamente
 inicializar_sistema_db()
 
 # --- 3. CONTROL DE ESTADOS DE SESIÓN ---
@@ -129,12 +141,10 @@ CARRERAS_POR_DIVISION = {
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. CONTROL DE FONDO GENERAL DE LA APLICACIÓN */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stCanvas"] {
         background-color: #f1f5f9 !important; 
     }
 
-    /* 2. TEXTO GENERAL EN TONOS OSCUROS LEGIBLES */
     h1, h2, h3, h4, h5, h6, p, span, label, strong, li, 
     [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMarkdownContainer"] h2,
@@ -156,7 +166,6 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* 3. CONFIGURACIÓN DE BOTONES (TEXTO VISIBLE BLANCO) */
     .stButton button, div[data-testid="stForm"] button, div.custom-card-form button {
         background-color: #0f172a !important;
         color: #ffffff !important;             
@@ -170,12 +179,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    .stButton button:hover, div[data-testid="stForm"] button:hover {
-        background-color: #1e293b !important;  
-        border-color: #1e293b !important;
-    }
-
-    /* 4. CONFIGURACIÓN CAJAS DE ENTRADA DE TEXTO Y BLOQUEO DE AUTOFILL OSCURO */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
@@ -199,7 +202,6 @@ st.markdown("""
         background-color: #ffffff !important;
     }
 
-    /* 5. DISEÑO DE MENÚS DESPLEGABLES CON FONDO CLARO */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
@@ -222,17 +224,6 @@ st.markdown("""
         font-weight: 500 !important;
     }
 
-    div[data-baseweb="menu"] li:hover, [role="option"]:hover {
-        background-color: #f1f5f9 !important; 
-        color: #0284c7 !important;            
-    }
-
-    div[data-testid="stNumberInput"] button {
-        background-color: #e2e8f0 !important;
-        color: #0f172a !important;
-    }
-
-    /* 6. DISEÑO CONTENEDOR TIPO HOJA DE TRABAJO (SIDE-PEEK) */
     div[data-testid="stForm"], .custom-card-form { 
         background-color: #ffffff !important; 
         border: 1px solid #e2e8f0 !important;
@@ -242,13 +233,11 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* 7. BARRA LATERAL IZQUIERDA */
     [data-testid="stSidebar"] { 
         background-color: #f8fafc !important; 
         border-right: 1px solid #e2e8f0 !important; 
     }
 
-    /* 8. TABLAS DE DATOS ESTILO NOTION */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -478,9 +467,7 @@ else:
 
                 # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    # Nota: Para las divisiones/carreras en nuevo expediente, usamos un card estético que sí permite cambios dinámicos libres
                     st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
-                    
                     st.markdown("##### 👤 Datos Personales y Académicos")
                     exp_nom = st.text_input("Nombre Completo del Alumno:")
                     exp_mat = st.text_input("Matrícula Institucional:")
@@ -489,13 +476,11 @@ else:
                     with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                     with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                     
-                    # --- FILTRADO EXCLUSIVO CAMPUS CHONTALPA ---
                     lista_divisiones = ["DACYTI", "DAIA", "DACB"]
                     exp_div = st.selectbox("División Académica:", options=lista_divisiones)
                     
                     lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
                     exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada)
-                    
                     exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                     
                     st.markdown("---")
@@ -505,7 +490,6 @@ else:
                     exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
                     exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
                     
-                    st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("Registrar Expediente Electrónico", use_container_width=True):
                         if exp_mat.strip() and exp_nom.strip():
                             conn = conectar_db_local()
@@ -526,26 +510,33 @@ else:
                                     conn.close()
                         else:
                             st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
-                    
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
+                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA (¡SISTEMA BLINDADO AQUÍ!) ---
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
+                    # Agregamos bloques IFNULL para resguardar la consulta si las nuevas columnas inyectadas vinieran vacías
                     datos_cita = conn.cursor().execute("""
-                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
-                        FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
+                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, 
+                               IFNULL(c.notas_evolucion, '') as notas_ev, 
+                               IFNULL(e.etiquetas, '') as tags, 
+                               e.id, e.matricula
+                        FROM citas c 
+                        JOIN expedientes e ON c.expediente_id = e.id 
+                        WHERE c.id = ?
                     """, (st.session_state.cita_seleccionada_id,)).fetchone()
                     conn.close()
 
                     if datos_cita:
                         st.markdown(f"<span style='color:#0284c7 !important; font-size:14px; font-weight: 600;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
+                        
+                        # Formulario seguro de edición sin callbacks cruzados
                         with st.form("form_edicion_cita_notion"):
                             peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
                             peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
                             peek_motivo = st.text_area("Motivo Clínico de Consulta:", value=datos_cita[4], disabled=True)
-                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=180)
-                            peek_tags = st.text_input("Etiquetas Diagnósticas:", value=datos_cita[6])
+                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=180, placeholder="Escriba aquí los detalles observados en la sesión...")
+                            peek_tags = st.text_input("Etiquetas Diagnósticas (Edición Directa):", value=datos_cita[6])
 
                             if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
                                 conn = conectar_db_local()
@@ -556,9 +547,10 @@ else:
                                 conn.close()
                                 st.session_state.side_peek_modo = None
                                 st.session_state.cita_seleccionada_id = None
+                                st.success("¡Historial clínico actualizado correctamente!")
                                 st.rerun()
 
-                # --- ACCIÓN: AGENDAR NUEVA CITA (OPTIMIZACIÓN TOTAL POR MATRÍCULA) ---
+                # --- ACCIÓN: AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
                     st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
                     st.markdown("##### 🔍 Buscar Alumno Paciente")
@@ -620,7 +612,6 @@ else:
                             """, unsafe_allow_html=True)
                     else:
                         st.info("💡 Por favor, tipee una matrícula institucional en la parte superior para desplegar los controles de agenda.")
-                    
                     st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================

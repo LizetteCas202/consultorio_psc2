@@ -106,6 +106,7 @@ CARRERAS_POR_DIVISION = {
     "DACYTI": [
         "Licenciatura en Tecnologías de la Información",
         "Licenciatura en Sistemas Computacionales",
+        "Licenciatura en Telemática",
         "Ingeniería en Informática Administrativa"
     ],
     "DAIA": [
@@ -115,11 +116,49 @@ CARRERAS_POR_DIVISION = {
         "Licenciatura en Arquitectura",
         "Ingeniería en Agua"
     ],
+    "DACEA": [
+        "Licenciatura en Administración",
+        "Licenciatura en Contaduría Pública",
+        "Licenciatura en Mercadotecnia",
+        "Licenciatura en Economía",
+        "Licenciatura en Negocios Internacionales"
+    ],
+    "DACS": [
+        "Licenciatura en Médico Cirujano",
+        "Licenciatura en Psicología",
+        "Licenciatura en Enfermería",
+        "Licenciatura en Nutrición",
+        "Licenciatura en Cirujano Dentista"
+    ],
+    "DACBiol": [
+        "Licenciatura en Biología",
+        "Licenciatura en Ciencias Ambientales",
+        "Ingeniería Ambiental"
+    ],
     "DACB": [
         "Licenciatura en Ciencias Computacionales",
         "Licenciatura en Matemáticas",
         "Licenciatura en Física",
         "Licenciatura en Químico Farmacéutico Biólogo"
+    ],
+    "DACSyH": [
+        "Licenciatura en Derecho",
+        "Licenciatura en Historia",
+        "Licenciatura en Sociología",
+        "Licenciatura en Comunicación"
+    ],
+    "DAEA": [
+        "Licenciatura en Ciencias de la Educación",
+        "Licenciatura en Idiomas"
+    ],
+    "DAMR": [
+        "Ingeniería Acuícola",
+        "Licenciatura en Informática",
+        "Licenciatura en Seguridad Alimentaria"
+    ],
+    "DAMJ": [
+        "Licenciatura en Enfermería",
+        "Licenciatura en Nutrición"
     ]
 }
 
@@ -319,7 +358,7 @@ else:
 
     # Navegación Lateral Módulos
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio ", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
+    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
@@ -330,7 +369,7 @@ else:
     # =================================================================================
     # MÓDULO MAIN: INICIO Y PLANNER DINÁMICO
     # =================================================================================
-    if seccion == "🏠 Inicio ":
+    if seccion == "🏠 Inicio y Planner":
         
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
@@ -481,7 +520,18 @@ else:
 
                 # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
+                    # Solución al error de carga: Los selectores dinámicos se renderizan AFUERA del st.form para permitir recarga en tiempo real
+                    st.markdown("##### 🏛️ Ubicación Académica")
+                    lista_divisiones = list(CARRERAS_POR_DIVISION.keys())
+                    exp_div = st.selectbox("División Académica:", options=lista_divisiones, key="exp_div_selector")
+                    
+                    lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
+                    exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
+                    
+                    st.markdown("---")
+                    
                     with st.form("form_nuevo_expediente_notion"):
+                        st.markdown("##### 👤 Datos Personales y Clínicos")
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
                         exp_mat = st.text_input("Matrícula Institucional:")
                         
@@ -489,18 +539,8 @@ else:
                         with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                         with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                         
-                        # ==========================================
-                        # ENTRADAS MAESTRAS DINÁMICAS (UJAT)
-                        # ==========================================
-                        lista_divisiones = list(CARRERAS_POR_DIVISION.keys())
-                        exp_div = st.selectbox("División Académica:", options=lista_divisiones, key="exp_div_selector")
-                        
-                        lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
-                        exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
-                        
                         exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
-                        # Campos limpios sin rellenos automáticos perjudiciales
                         exp_tel = st.text_input("Teléfono de Contacto:", value="")
                         exp_cor = st.text_input("Correo Electrónico:", value="")
                         exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
@@ -530,14 +570,9 @@ else:
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
-                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notes_evolucion, e.etiquetas, e.id, e.matricula
+                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
                         FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
                     """, (st.session_state.cita_seleccionada_id,)).fetchone()
-                    if not datos_cita: # Fallback por si la columna se llama notas_evolucion en lugar de notes_evolucion
-                        datos_cita = conn.cursor().execute("""
-                            SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
-                            FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
-                        """, (st.session_state.cita_seleccionada_id,)).fetchone()
                     conn.close()
 
                     if datos_cita:
@@ -552,10 +587,7 @@ else:
                             if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
-                                try:
-                                    cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
-                                except sqlite3.OperationalError:
-                                    cursor.execute("UPDATE citas SET estado = ?, notes_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
+                                cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                                 cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                                 conn.commit()
                                 conn.close()

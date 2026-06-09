@@ -319,7 +319,7 @@ else:
 
     # Navegación Lateral Módulos
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
+    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio ", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
@@ -330,7 +330,7 @@ else:
     # =================================================================================
     # MÓDULO MAIN: INICIO Y PLANNER DINÁMICO
     # =================================================================================
-    if seccion == "🏠 Inicio y Planner":
+    if seccion == "🏠 Inicio ":
         
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
@@ -498,7 +498,6 @@ else:
                         lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
                         exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
                         
-                        exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
                         exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
                         # Campos limpios sin rellenos automáticos perjudiciales

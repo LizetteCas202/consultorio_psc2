@@ -91,65 +91,54 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - ENFOQUE NOTION SIDE-PEEK Y BLINDAJE DE COLORES
+# INYECCIÓN MAESTRA DE CSS - LEY DE CONTRASTE DINÁMICO (ANTI MODO OSCURO)
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. BLINDAJE DEL FONDO GENERAL DE LA APLICACIÓN */
-    .stApp, [data-testid="stAppViewContainer"] { 
-        background-color: #ffffff !important; 
+    /* 1. CONTROL DE CONTRASTE BASE SEGÚN EL ENTORNO */
+    html, body, [data-testid="stAppViewContainer"] {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
-    
-    /* 2. CONTRASTE ABSOLUTO DE TEXTOS ESTILO NOTION */
-    h1, h2, h3, h4, h5, h6, p, span, label, li, small {
+
+    /* Forzar visibilidad de títulos principales en la zona clara de trabajo */
+    .main h1, .main h2, .main h3, .main h4, .main p, .main span {
         color: #191919 !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     }
-    
-    [data-testid="stMarkdownContainer"] h1, 
-    [data-testid="stMarkdownContainer"] h2, 
-    [data-testid="stMarkdownContainer"] h3, 
-    [data-testid="stMarkdownContainer"] h4 {
-        color: #191919 !important;
+
+    /* 2. ENTRADAS DE DATOS BLINDADAS (EDAD, CARRERA, ETC.) EN FONDOS OSCUROS/EMERGENTES */
+    div[data-testid="stForm"] label, 
+    div[data-testid="stForm"] .stWidgetFormLabel,
+    div[data-testid="stForm"] [data-testid="stWidgetLabel"] p {
+        color: #ffffff !important; /* Letra clara sobre fondo oscuro de formulario */
         font-weight: 600 !important;
-    }
-    
-    .stWidgetFormLabel, [data-testid="stWidgetLabel"] p {
-        color: #2f2f2f !important;
-        font-weight: 500 !important;
         font-size: 14px !important;
     }
 
-    /* 3. SIMULACIÓN DEL SIDE-PEEK DESLIZABLE (NOTION SIDE PANEL) */
-    div[data-testid="stForm"] { 
-        background-color: #fbfbfa !important; 
-        border-left: 1px solid #e3e2e0 !important; 
-        border-top: none !important;
-        border-bottom: none !important;
-        border-right: none !important;
-        box-shadow: -4px 0px 16px rgba(0, 0, 0, 0.04) !important;
-        padding: 26px !important;
-        border-radius: 0px !important; /* Panel lateral recto */
-        height: 100% !important;
-        margin-top: 0px !important;
+    /* Evitar el efecto "letra invisible" dentro de los campos selectores e inputs */
+    div[data-baseweb="select"] div, 
+    div[data-baseweb="input"] input, 
+    div[data-baseweb="textarea"] textarea {
+        color: #191919 !important; /* Texto oscuro para escribir en cajas claras */
+        font-weight: 500 !important;
     }
     
-    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
-        background-color: #ffffff !important;
-        border: 1px solid #dcdbdb !important;
-        border-radius: 6px !important;
-    }
-    
-    div[data-baseweb="input"] input, div[data-baseweb="select"] span, div[data-baseweb="textarea"] textarea {
+    /* Arreglo específico para las opciones del dropdown desplegable */
+    div[data-baseweb="menu"] li, div[role="listbox"] div {
         color: #191919 !important;
+        background-color: #ffffff !important;
     }
-    
-    div[data-testid="stColumn"] {
-        padding: 0px !important;
-        margin: 0px !important;
+
+    /* 3. FORMATO SIDE-PEEK DESLIZABLE ESTILO NOTION CARD */
+    div[data-testid="stForm"] { 
+        background-color: #1e293b !important; /* Azul profundo oscuro de fondo */
+        border-left: 2px solid #334155 !important; 
+        border-top: none !important; border-bottom: none !important; border-right: none !important;
+        box-shadow: -4px 0px 18px rgba(0, 0, 0, 0.2) !important;
+        padding: 26px !important;
+        border-radius: 0px !important;
     }
-    
-    /* 4. MENÚ LATERAL IZQUIERDO (SIDEBAR) */
+
+    /* 4. BARRA LATERAL IZQUIERDA (FONDO CLARO = LETRA OSCURA COHERENTE) */
     [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
         border-right: 1px solid #e9e9e8 !important; 
@@ -158,11 +147,21 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] p {
-        color: #2f2f2f !important; 
-        font-weight: 500 !important;
+        color: #1e293b !important; /* Azul oscuro coherente con la paleta */
+        font-weight: 600 !important;
     }
     
-    /* 5. DISEÑO DE LA TABLA COMPACTA DE NOTION (BASADO EN IMAGE_526D7A) */
+    /* Botón Cerrar Sesión en barra clara */
+    [data-testid="stSidebar"] .stButton button {
+        color: #ffffff !important;
+        background-color: #64748b !important; /* Gris azulado visible */
+        border: none !important;
+    }
+    [data-testid="stSidebar"] .stButton button:hover {
+        background-color: #475569 !important;
+    }
+
+    /* 5. TABLA COMPACTA DE CITAS ESTILO NOTION */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -189,18 +188,15 @@ st.markdown("""
         font-size: 13px; 
         color: #6a6a65 !important;
     }
-    .notion-table-header div { color: #6a6a65 !important; }
     
     .notion-table-row {
         display: flex;
         align-items: center;
         padding: 8px 14px;
-        border-bottom: 1px solid #f1f0ef;
-        background-color: #ffffff;
+        color: #191919 !important;
     }
-    .notion-table-row:last-child { border-bottom: none; }
     
-    /* Indicador visual de estado Notion */
+    /* Badges de estado */
     .status-badge {
         padding: 2px 8px;
         border-radius: 4px;
@@ -211,24 +207,23 @@ st.markdown("""
     .status-realizada { background-color: #e2f2e4; color: #2e6930 !important; }
     .status-cancelada { background-color: #ffe2dd; color: #cc3333 !important; }
     
-    /* Textos y botones del planificador */
-    center small strong, .stMarkdown center, .stMarkdown center small {
-        color: #37352f !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-    }
-    
-    div.stButton > button, .stButton button {
+    /* 6. BOTONES GENERALES DE LA PÁGINA */
+    .main .stButton button {
         background-color: #ffffff !important;
         color: #191919 !important;
         border: 1px solid #dcdbdb !important;
-        border-radius: 6px !important;
         font-size: 13px !important;
-        font-weight: 500 !important;
     }
-    div.stButton > button:hover, .stButton button:hover {
+    .main .stButton button:hover {
         background-color: #f4f5f6 !important;
-        border-color: #c0bfbf !important;
+    }
+    
+    /* Botón de guardar dentro del formulario oscuro (Fondo oscuro = Botón destacado claro) */
+    div[data-testid="stForm"] .stButton button {
+        background-color: #38bdf8 !important; /* Azul cielo brillante */
+        color: #0f172a !important; /* Letra oscura para máximo contraste */
+        font-weight: bold !important;
+        border: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -258,7 +253,7 @@ else:
     st.markdown(f"""
         <div class="constante-header-container">
             <img src="{LOGO_UJAT_URL}" width="35">
-            <h1>Consultorio Psicológico DACYTI</h1>
+            <h1 style="color:#191919 !important;">Consultorio Psicológico DACYTI</h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -277,7 +272,6 @@ else:
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
         
-        # Grid fluido que maneja la apertura del Side-Peek deslizable a la derecha
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([62, 38], gap="medium")
         else:
@@ -301,7 +295,7 @@ else:
 
             st.markdown("---")
 
-            # EXTRACCIÓN DE CITAS GLOBALES DE LA BASE DE DATOS
+            # EXTRACCIÓN DE CITAS
             conn = conectar_db_local()
             citas_tabla = pd.read_sql_query("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
@@ -310,32 +304,30 @@ else:
             """, conn)
             conn.close()
 
-            # TABLILLA ESTILO NOTION ASOCIADA A LAS IMÁGENES COMPARTIDAS
             st.markdown("#### 📄 Citas Programadas")
             if not citas_tabla.empty:
                 st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
                 st.markdown("""
                     <div class="notion-table-header">
-                        <div style="flex: 2; padding-left: 5px;">Aa Nombre del Paciente</div>
-                        <div style="flex: 1.5;">📅 Fecha y Hora</div>
-                        <div style="flex: 1;">✨ Estado</div>
-                        <div style="flex: 1; text-align: center;">⚙️ Gestión</div>
+                        <div style="flex: 2; padding-left: 5px; color:#6a6a65;">Aa Nombre del Paciente</div>
+                        <div style="flex: 1.5; color:#6a6a65;">📅 Fecha y Hora</div>
+                        <div style="flex: 1; color:#6a6a65;">✨ Estado</div>
+                        <div style="flex: 1; text-align: center; color:#6a6a65;">⚙️ Gestión</div>
                     </div>
                 """, unsafe_allow_html=True)
 
                 for _, fila in citas_tabla.iterrows():
-                    # Filtrar badge según el estado clínico
                     clase_badge = "status-pendiente"
                     if fila['estado'] == "Realizada": clase_badge = "status-realizada"
                     elif fila['estado'] == "Cancelada": clase_badge = "status-cancelada"
 
                     c_fila1, c_fila2, c_fila3, c_fila4 = st.columns([2, 1.5, 1, 1])
                     with c_fila1:
-                        st.markdown(f"<div class='notion-table-row' style='border:none;'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='notion-table-row'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
                     with c_fila2:
-                        st.markdown(f"<div class='notion-table-row' style='border:none; color:#5a5d56;'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='notion-table-row' style='color:#5a5d56;'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
                     with c_fila3:
-                        st.markdown(f"<div class='notion-table-row' style='border:none;'><span class='status-badge {clase_badge}'>{fila['estado']}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='notion-table-row'><span class='status-badge {clase_badge}'>{fila['estado']}</span></div>", unsafe_allow_html=True)
                     with c_fila4:
                         if st.button("Ver Detalle", key=f"open_t_{fila['id']}", use_container_width=True):
                             st.session_state.side_peek_modo = "VER_CITA"
@@ -343,15 +335,11 @@ else:
                             st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.markdown("""
-                    <div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #191919; border-radius: 4px; font-size: 14px;">
-                        No se encuentran registros de citas programadas para el día de hoy.
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown('<div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #191919; border-radius: 4px; font-size: 14px;">No se encuentran registros de citas programadas para hoy.</div>', unsafe_allow_html=True)
 
             st.markdown("---")
 
-            # PLANNER E INTERFAZ DE CALENDARIOS INTERACTIVOS
+            # INTERFAZ DE CALENDARIOS INTERACTIVOS
             st.markdown("#### 📅 Visualizador de Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
@@ -359,7 +347,6 @@ else:
             with c_p2:
                 fecha_pivote = st.date_input("Fecha Base Enfoque:", value=date.today(), key="pivote_date")
 
-            # Mapear citas indexadas por string de fecha para acceso directo desde cualquier vista
             diccionario_citas_global = {}
             for _, c_act in citas_tabla.iterrows():
                 try:
@@ -369,7 +356,6 @@ else:
                     diccionario_citas_global[f_str].append(c_act)
                 except: pass
 
-            # --- VISTA 1: CALENDARIO MENSUAL ---
             if tipo_formato == "Mensual (Carga General)":
                 año_sel, mes_sel = fecha_pivote.year, fecha_pivote.month
                 cal_objeto = calendar.Calendar(firstweekday=0)
@@ -378,7 +364,7 @@ else:
                 dias_semana_nombres = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"]
                 cols_cabecera = st.columns(7)
                 for idx, d_nom in enumerate(dias_semana_nombres):
-                    cols_cabecera[idx].markdown(f"<center><small><strong>{d_nom}</strong></small></center>", unsafe_allow_html=True)
+                    cols_cabecera[idx].markdown(f"<center><strong>{d_nom}</strong></center>", unsafe_allow_html=True)
 
                 for sem_idx, semana in enumerate(semanas_mes):
                     cols_dias = st.columns(7)
@@ -390,19 +376,14 @@ else:
                                 if f_buscar in diccionario_citas_global:
                                     for cita_dia in diccionario_citas_global[f_buscar]:
                                         hora_c = cita_dia['fecha_hora'][11:16]
-                                        # Acceso y edición directa desde la cuadrícula mensual
                                         if st.button(f"⏱️ {hora_c}", key=f"cal_m_btn_{cita_dia['id']}", use_container_width=True):
                                             st.session_state.side_peek_modo = "VER_CITA"
                                             st.session_state.cita_seleccionada_id = cita_dia['id']
                                             st.rerun()
                     st.markdown("<hr style='margin:4px 0; border-top:1px dashed #e3e2e0;'>", unsafe_allow_html=True)
 
-            # --- VISTA 2: CALENDARIO SEMANAL LABORAL (LUNES A VIERNES) ---
             elif tipo_formato == "Semanal (Horario Laboral L-V)":
-                # Calcular el lunes de la semana actual basado en la fecha seleccionada
                 inicio_semana = fecha_pivote - timedelta(days=fecha_pivote.weekday())
-                
-                # Desplegar únicamente de Lunes (0) a Viernes (4)
                 dias_laborales = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
                 cols_semana = st.columns(5)
                 
@@ -411,13 +392,12 @@ else:
                     f_buscar_semana = fecha_dia_actual.strftime("%Y-%m-%d")
                     
                     with cols_semana[idx]:
-                        st.markdown(f"<center><div style='background-color:#f7f7f5; padding:6px; border-radius:4px;'><strong>{nom_dia}</strong><br><small>{fecha_dia_actual.day} de {calendar.month_name[fecha_dia_actual.month][:3]}</small></div></center>", unsafe_allow_html=True)
+                        st.markdown(f"<center><div style='background-color:#f7f7f5; padding:6px; border-radius:4px; color:#191919;'><strong>{nom_dia}</strong><br><small style='color:#6a6a65;'>{fecha_dia_actual.day} de {calendar.month_name[fecha_dia_actual.month][:3]}</small></div></center>", unsafe_allow_html=True)
                         st.markdown("<br>", unsafe_allow_html=True)
                         
                         if f_buscar_semana in diccionario_citas_global:
                             for cita_sem in diccionario_citas_global[f_buscar_semana]:
                                 hora_s = cita_sem['fecha_hora'][11:16]
-                                # Acceso y edición directa desde la cuadrícula semanal
                                 if st.button(f"{hora_s} - {cita_sem['nombre'][:12]}...", key=f"cal_s_btn_{cita_sem['id']}", use_container_width=True):
                                     st.session_state.side_peek_modo = "VER_CITA"
                                     st.session_state.cita_seleccionada_id = cita_sem['id']
@@ -426,26 +406,25 @@ else:
                             st.markdown("<center><span style='color:#a0a0a0; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: APARTADO COMPLETO DEL SIDE-PEEK ESTILO NOTION PANEL
+        # COLUMNA DERECHA: SIDE-PEEK DESLIZABLE COMPATIBLE CON MODO OSCURO
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
-                # Fila de comandos superior para control del panel deslizable
                 c_tit, c_close = st.columns([3.8, 1.6])
                 with c_tit:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.markdown("<h4 style='margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.markdown("<h4 style='margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
                 with c_close:
                     if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
                         st.session_state.side_peek_modo = None
                         st.session_state.cita_seleccionada_id = None
                         st.rerun()
                 
-                # --- FORMULARIO SIDE-PEEK: NUEVO EXPEDIENTE ---
+                # --- NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                     with st.form("form_nuevo_expediente_notion"):
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
@@ -480,7 +459,7 @@ else:
                                     st.error("La matrícula ya existe.")
                                 finally: conn.close()
 
-                # --- FORMULARIO SIDE-PEEK: VER / EDITAR CITA SELECCIONADA ---
+                # --- VER / EDITAR CITA SELECCIONADA ---
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -490,7 +469,7 @@ else:
                     conn.close()
 
                     if datos_cita:
-                        st.caption(f"✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}")
+                        st.markdown(f"<span style='color:#bae6fd !important; font-size:13px;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
                         with st.form("form_edicion_cita_notion"):
                             peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
                             peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
@@ -509,7 +488,7 @@ else:
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
 
-                # --- FORMULARIO SIDE-PEEK: AGENDAR NUEVA CITA ---
+                # --- AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
                     conn = conectar_db_local()
                     expedientes_df = pd.read_sql_query("SELECT id, nombre, matricula FROM expedientes", conn)
@@ -540,7 +519,7 @@ else:
                             st.form_submit_button("Aceptar", disabled=True)
 
     # =================================================================================
-    # OTROS MÓDULOS DE GESTIÓN (DATAFRAMES CON CONTROLES DE DESCARGA LIBERADOS)
+    # OTROS MÓDULOS DE GESTIÓN
     # =================================================================================
     elif seccion == "📋 Expedientes Electrónicos":
         st.markdown("<h3>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)

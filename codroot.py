@@ -101,11 +101,26 @@ if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = "
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
-# Estructura de Divisiones y Carreras de la UJAT
-ESTRUCTURA_UJAT = {
-    "DACYTI": ["Licenciatura en Tecnologías de la Información", "Licenciatura en Sistemas Computacionales", "Licenciatura en Telemática", "Ingeniería en Informática Administrativa"],
-    "DAIA": ["Ingeniería Mecánica Eléctrica", "Ingeniería Civil", "Ingeniería Química", "Ingeniería Ambiental"],
-    "DACB": ["Licenciatura en Ciencias Computacionales", "Licenciatura en Matemáticas", "Licenciatura en Física"]
+# Mapeo maestro de Divisiones y Carreras de la UJAT (Estructura Dinámica)
+CARRERAS_POR_DIVISION = {
+    "DACYTI": [
+        "Licenciatura en Tecnologías de la Información",
+        "Licenciatura en Sistemas Computacionales",
+        "Ingeniería en Informática Administrativa"
+    ],
+    "DAIA": [
+        "Ingeniería Civil",
+        "Ingeniería Mecánica Eléctrica",
+        "Ingeniería Química",
+        "Licenciatura en Arquitectura",
+        "Ingeniería en Agua"
+    ],
+    "DACB": [
+        "Licenciatura en Ciencias Computacionales",
+        "Licenciatura en Matemáticas",
+        "Licenciatura en Física",
+        "Licenciatura en Químico Farmacéutico Biólogo"
+    ]
 }
 
 # -------------------------------------------------------------------------------------
@@ -474,116 +489,40 @@ else:
                         with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                         with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                         
-                       # ==============================================================================
-                    # DICCIONARIO DE DIVISIONES Y CARRERAS (ADECUACIÓN DINÁMICA)
-                    # ==============================================================================
-                    carreras_por_division = {
-                        "DACYTI": [
-                            "Licenciatura en Tecnologías de la Información",
-                            "Licenciatura en Sistemas Computacionales",
-                            "Licenciatura en Telemática",
-                            "Ingeniería en Informática Administrativa"
-                        ],
-                        "DAIA": [
-                            "Ingeniería Civil",
-                            "Ingeniería Mecánica Eléctrica",
-                            "Ingeniería Química",
-                            "Licenciatura en Arquitectura",
-                            "Ingeniería en Agua"
-                        ],
-                        "DACEA": [
-                            "Licenciatura en Administración",
-                            "Licenciatura en Contaduría Pública",
-                            "Licenciatura en Mercadotecnia",
-                            "Licenciatura en Economía",
-                            "Licenciatura en Negocios Internacionales"
-                        ],
-                        "DACS": [
-                            "Licenciatura en Médico Cirujano",
-                            "Licenciatura en Psicología",
-                            "Licenciatura en Enfermería",
-                            "Licenciatura en Nutrición",
-                            "Licenciatura en Cirujano Dentista"
-                        ],
-                        "DACBiol": [
-                            "Licenciatura en Biología",
-                            "Licenciatura en Ciencias Ambientales",
-                            "Ingeniería Ambiental"
-                        ],
-                        "DACB": [
-                            "Licenciatura en Ciencias Computacionales",
-                            "Licenciatura en Matemáticas",
-                            "Licenciatura en Física",
-                            "Licenciatura en Químico Farmacéutico Biólogo"
-                        ],
-                        "DACSyH": [
-                            "Licenciatura en Derecho",
-                            "Licenciatura en Historia",
-                            "Licenciatura en Sociología",
-                            "Licenciatura en Comunicación"
-                        ],
-                        "DAEA": [
-                            "Licenciatura en Ciencias de la Educación",
-                            "Licenciatura en Idiomas"
-                        ],
-                        "DAMR": [
-                            "Ingeniería Acuícola",
-                            "Licenciatura en Informática",
-                            "Licenciatura en Seguridad Alimentaria"
-                        ],
-                        "DAMJ": [
-                            "Licenciatura en Enfermería",
-                            "Licenciatura en Nutrición"
-                        ]
-                    }
-
-                    # ==============================================================================
-                    # CAMPOS DEL FORMULARIO EN STREAMLIT
-                    # ==============================================================================
-
-                    # 1. Selector de la División Académica
-                    lista_divisiones = list(carreras_por_division.keys())
-
-                    exp_div = st.selectbox(
-                        "División Académica:",
-                        options=lista_divisiones,
-                        key="exp_div_selector"
-                    )
-
-                    # 2. Filtro dinámico: Obtiene las carreras de la división seleccionada
-                    # Si por alguna razón no encuentra la división, regresa una lista vacía
-                    lista_carreras_filtrada = carreras_por_division.get(exp_div, [])
-
-                    # 3. Selector de la Carrera Universitaria
-                    exp_car = st.selectbox(
-                        "Carrera Universitaria:",
-                        options=lista_carreras_filtrada,
-                        key="exp_car_selector"
-)
-                    exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
+                        # ==========================================
+                        # ENTRADAS MAESTRAS DINÁMICAS (UJAT)
+                        # ==========================================
+                        lista_divisiones = list(CARRERAS_POR_DIVISION.keys())
+                        exp_div = st.selectbox("División Académica:", options=lista_divisiones, key="exp_div_selector")
                         
-                        # CORRECCIÓN EXTRAER RELLENOS PREDETERMINADOS (CAMPOS LIMPIOS)
-                    exp_tel = st.text_input("Teléfono de Contacto:", value="")
-                    exp_cor = st.text_input("Correo Electrónico:", value="")
-                    exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
-                    exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
+                        lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
+                        exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
                         
-                    if st.form_submit_button("Registrar Expediente Electrónico", use_container_width=True):
-                        if exp_mat.strip() and exp_nom.strip():
-                            conn = conectar_db_local()
-                            if conn:
-                                try:
-                                    tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
-                                    conn.cursor().execute("""
+                        exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
+                        exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
+                        
+                        # Campos limpios sin rellenos automáticos perjudiciales
+                        exp_tel = st.text_input("Teléfono de Contacto:", value="")
+                        exp_cor = st.text_input("Correo Electrónico:", value="")
+                        exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
+                        exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
+                        
+                        if st.form_submit_button("Registrar Expediente Electrónico", use_container_width=True):
+                            if exp_mat.strip() and exp_nom.strip():
+                                conn = conectar_db_local()
+                                if conn:
+                                    try:
+                                        tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
+                                        conn.cursor().execute("""
                                             INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
                                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                         """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
-                                    conn.commit()
-                                    st.session_state.side_peek_modo = None
-                                    st.rerun()
-                                except sqlite3.IntegrityError:
+                                        conn.commit()
+                                        st.session_state.side_peek_modo = None
+                                        st.rerun()
+                                    except sqlite3.IntegrityError:
                                         st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
-                                finally: 
+                                    finally: 
                                         conn.close()
                             else:
                                 st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
@@ -592,9 +531,14 @@ else:
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
-                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
+                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notes_evolucion, e.etiquetas, e.id, e.matricula
                         FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
                     """, (st.session_state.cita_seleccionada_id,)).fetchone()
+                    if not datos_cita: # Fallback por si la columna se llama notas_evolucion en lugar de notes_evolucion
+                        datos_cita = conn.cursor().execute("""
+                            SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, c.notas_evolucion, e.etiquetas, e.id, e.matricula
+                            FROM citas c JOIN expedientes e ON c.expediente_id = e.id WHERE c.id = ?
+                        """, (st.session_state.cita_seleccionada_id,)).fetchone()
                     conn.close()
 
                     if datos_cita:
@@ -609,7 +553,10 @@ else:
                             if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
-                                cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
+                                try:
+                                    cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
+                                except sqlite3.OperationalError:
+                                    cursor.execute("UPDATE citas SET estado = ?, notes_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                                 cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                                 conn.commit()
                                 conn.close()
@@ -642,7 +589,7 @@ else:
                                 conn.commit()
                                 conn.close()
                                 st.session_state.side_peek_modo = None
-                                st.rerun()
+                                st.rerun()  # <--- REPARADO: st.rerun() Oficial Streamlit
                         else:
                             st.warning("No existen expedientes registrados para asignar la cita.")
                             st.form_submit_button("Aceptar", disabled=True)

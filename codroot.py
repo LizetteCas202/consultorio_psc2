@@ -42,7 +42,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # REPARACIÓN AUTOMÁTICA: Limpieza de esquemas antiguos para evitar el sqlite3.OperationalError
+        # REPARACIÓN AUTOMÁTICA: Limpieza de esquemas antiguos para evitar errores estructurales
         cursor.execute("DROP TABLE IF EXISTS expedientes_old")
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expedientes'")
         if cursor.fetchone():
@@ -109,7 +109,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - REPARACIÓN TOTAL DE CONTRASTE Y DROPDOWNS
+# INYECCIÓN MAESTRA DE CSS - REMEDIACIÓN DE AUTOCOMPLETADO Y INPUTS OSCUROS
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
@@ -140,7 +140,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* 3. REPARACIÓN RADICAL DE BOTONES (TEXTO VISIBLE BLANCO) */
+    /* 3. CONFIGURACIÓN DE BOTONES (TEXTO VISIBLE BLANCO) */
     .stButton button, div[data-testid="stForm"] button {
         background-color: #0f172a !important;
         color: #ffffff !important;             
@@ -150,7 +150,6 @@ st.markdown("""
         transition: all 0.2s ease-in-out !important;
     }
     
-    /* Forzar que cualquier párrafo o contenedor interno del botón sea blanco */
     .stButton button *, div[data-testid="stForm"] button * {
         color: #ffffff !important;
     }
@@ -160,7 +159,7 @@ st.markdown("""
         border-color: #1e293b !important;
     }
 
-    /* 4. CONFIGURACIÓN CAJAS DE ENTRADA DE TEXTO */
+    /* 4. CONFIGURACIÓN CAJAS DE ENTRADA DE TEXTO Y BLOQUEO DE AUTOFILL OSCURO */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
@@ -172,7 +171,20 @@ st.markdown("""
         -webkit-text-fill-color: #0f172a !important; 
     }
 
-    /* 5. DISEÑO DE MENÚS DESPLEGABLES CON FONDO CLARO (ARREGLA LA VISTA OSCURA) */
+    /* Rompe el fondo oscuro que mete el navegador por recordar datos (Autofill) */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus {
+        -webkit-text-fill-color: #0f172a !important;
+        -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+        background-color: #ffffff !important;
+    }
+
+    /* 5. DISEÑO DE MENÚS DESPLEGABLES CON FONDO CLARO */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
@@ -180,7 +192,6 @@ st.markdown("""
         border-radius: 6px !important;
     }
     
-    /* El contenedor del texto seleccionado dentro de la caja */
     div[data-baseweb="select"] aria-live {
         color: #0f172a !important;
     }
@@ -189,24 +200,18 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* Lista flotante de opciones al hacer click */
     div[data-baseweb="popover"], div[data-baseweb="menu"], [role="listbox"] {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
     }
 
-    div[data-baseweb="menu"] li, 
-    [role="listbox"] li, 
-    [role="option"],
-    ul[role="listbox"] span {
+    div[data-baseweb="menu"] li, [role="listbox"] li, [role="option"], ul[role="listbox"] span {
         color: #0f172a !important;            
         background-color: #ffffff !important;
         font-weight: 500 !important;
     }
 
-    /* Opción apuntada por el mouse */
-    div[data-baseweb="menu"] li:hover, 
-    [role="option"]:hover {
+    div[data-baseweb="menu"] li:hover, [role="option"]:hover {
         background-color: #f1f5f9 !important; 
         color: #0284c7 !important;            
     }
@@ -473,10 +478,11 @@ else:
                         exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div])
                         exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
-                        exp_tel = st.text_input("Teléfono de Contacto:")
-                        exp_cor = st.text_input("Correo Electrónico:")
-                        exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):")
-                        exp_obs = st.text_area("Motivo de Consulta Inicial:", height=100)
+                        # CORRECCIÓN EXTRAER RELLENOS PREDETERMINADOS (CAMPOS LIMPIOS)
+                        exp_tel = st.text_input("Teléfono de Contacto:", value="")
+                        exp_cor = st.text_input("Correo Electrónico:", value="")
+                        exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
+                        exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
                         
                         if st.form_submit_button("Registrar Expediente Electrónico", use_container_width=True):
                             if exp_mat.strip() and exp_nom.strip():

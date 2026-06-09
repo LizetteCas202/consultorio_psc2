@@ -16,7 +16,7 @@ st.set_page_config(
 # Inyección de CSS para emular la tipografía de Notion y el estilo de la app
 st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
         
         html, body, [class*="css"], .stMarkdown {
             font-family: 'Inter', sans-serif;
@@ -96,36 +96,127 @@ def inicializar_base_datos():
 inicializar_base_datos()
 
 # ==============================================================================
-# 3. CONTROL DE ESTADO DE SESIÓN (Navegación e Interfaces Expansibles)
+# 3. CONTROL DE ESTADO DE SESIÓN (Navegación e Interfaces de Costado)
 # ==============================================================================
 if "menu_actual" not in st.session_state:
     st.session_state.menu_actual = "🏠 Inicio y Planner"
 
-if "mostrar_nuevo_expediente" not in st.session_state:
-    st.session_state.mostrar_nuevo_expediente = False
-
-if "mostrar_nueva_agenda" not in st.session_state:
-    st.session_state.mostrar_nueva_agenda = False
+# Vista lateral activa: "navegacion", "nuevo_expediente", "nueva_cita"
+if "sub_vista_lateral" not in st.session_state:
+    st.session_state.sub_vista_lateral = "navegacion"
 
 if "fecha_navegacion_cal" not in st.session_state:
     st.session_state.fecha_navegacion_cal = datetime.today().date()
 
 # ==============================================================================
-# 4. BARRA LATERAL (Módulos de Gestión Fijos)
+# 4. BARRA LATERAL DINÁMICA (VENTANA DE COSTADO ESTILO NOTION)
 # ==============================================================================
 with st.sidebar:
-    st.markdown("### 🗂️ Módulos de Gestión")
-    st.write("Ir a:")
-    
-    opciones_menu = ["🏠 Inicio y Planner", "📄 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"]
-    seleccion = st.radio("Navegación", opciones_menu, index=opciones_menu.index(st.session_state.menu_actual), label_visibility="collapsed")
-    st.session_state.menu_actual = seleccion
-    
-    st.markdown("---")
-    st.markdown("### 👤 Personal Encargado:")
-    st.caption("psicologa.sara")
+    # --- CASO 1: NAVEGACIÓN GENERAL ---
+    if st.session_state.sub_vista_lateral == "navegacion":
+        st.markdown("### 🗂️ Módulos de Gestión")
+        st.write("Ir a:")
+        
+        opciones_menu = ["🏠 Inicio y Planner", "📄 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"]
+        seleccion = st.radio("Navegación", opciones_menu, index=opciones_menu.index(st.session_state.menu_actual), label_visibility="collapsed")
+        st.session_state.menu_actual = seleccion
+        
+        st.markdown("---")
+        st.markdown("### 👤 Personal Encargado:")
+        st.caption("psicologa.sara")
 
-# Obtenemos los datos globales de citas para el planner y calendario
+    # --- CASO 2: FORMULARIO LATERAL DE NUEVO EXPEDIENTE ---
+    elif st.session_state.sub_vista_lateral == "nuevo_expediente":
+        st.markdown("### 📝 Abrir Nuevo Expediente")
+        st.caption("Complete los datos del alumno en esta ventana lateral.")
+        
+        if st.button("<< Volver al Menú", use_container_width=True):
+            st.session_state.sub_vista_lateral = "navegacion"
+            st.rerun()
+            
+        st.markdown("---")
+        st.markdown("#### 🏛️ Ubicación Académica")
+        div_aca = st.selectbox("División Académica:", ["DACYTI", "DAIA", "DACEA", "DAMJS"])
+        
+        carreras_dict = {
+            "DACYTI": ["Licenciatura en Tecnologías de la Información", "Licenciatura en Sistemas Computacionales", "Licenciatura en Telemática", "Ingeniería en Informática Administrativa"],
+            "DAIA": ["Ingeniería Civil", "Ingeniería Mecánica", "Ingeniería Eléctrica"],
+            "DACEA": ["Licenciatura en Administración", "Licenciatura en Contaduría Pública"],
+            "DAMJS": ["Licenciatura en Derecho", "Licenciatura en Psicología"]
+        }
+        carrera_sel = st.selectbox("Carrera Universitaria:", carreras_dict.get(div_aca, ["General"]))
+        
+        st.markdown("#### 👤 Datos Personales")
+        nom_completo = st.text_input("Nombre Completo:")
+        mat_institucional = st.text_input("Matrícula Institucional:")
+        edad_alumno = st.number_input("Edad:", min_value=15, max_value=90, value=20)
+        gen_alumno = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
+        sem_alumno = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"])
+        tel_contacto = st.text_input("Teléfono de Contacto:")
+        corr_electronico = st.text_input("Correo Electrónico:")
+        tags_diag = st.text_input("Etiquetas (separadas por comas):")
+        mot_consulta = st.text_area("Motivo de Consulta Inicial:")
+        
+        if st.button("Guardar Expediente", use_container_width=True, type="primary"):
+            if not nom_completo or not mat_institucional:
+                st.error("❌ Nombre y Matrícula obligatorios.")
+            else:
+                try:
+                    conn = conectar_db()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, etiquetas, motivo_consulta)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (mat_institucional.strip().upper(), nom_completo.strip(), gen_alumno, int(edad_alumno), div_aca, carrera_sel, sem_alumno, tel_contacto.strip(), corr_electronico.strip(), tags_diag.strip(), mot_consulta.strip()))
+                    conn.commit()
+                    conn.close()
+                    st.success("✅ ¡Expediente Guardado!")
+                    st.session_state.sub_vista_lateral = "navegacion"
+                    st.session_state.menu_actual = "📄 Expedientes Electrónicos"
+                    st.rerun()
+                except sqlite3.IntegrityError:
+                    st.error("❌ La matrícula ya existe.")
+
+    # --- CASO 3: FORMULARIO LATERAL DE NUEVA CITA ---
+    elif st.session_state.sub_vista_lateral == "nueva_cita":
+        st.markdown("### 📅 Nueva Agenda (Cita)")
+        st.caption("Registre la cita del alumno en esta ventana lateral.")
+        
+        if st.button("<< Volver al Menú", use_container_width=True):
+            st.session_state.sub_vista_lateral = "navegacion"
+            st.rerun()
+            
+        st.markdown("---")
+        conn = conectar_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nombre, matricula FROM expedientes ORDER BY nombre ASC")
+        alumnos_db = cursor.fetchall()
+        conn.close()
+        
+        if not alumnos_db:
+            st.warning("⚠️ No hay expedientes registrados.")
+        else:
+            opciones_alumnos = {f"{a[1]} ({a[2]})": a[0] for a in alumnos_db}
+            alumno_asignado = st.selectbox("Seleccionar Alumno:", list(opciones_alumnos.keys()))
+            
+            f_elegida = st.date_input("Fecha de Consulta:", value=datetime.today())
+            h_elegida = st.time_input("Hora de Consulta:", value=datetime.now().time())
+            mot_cita_new = st.text_area("Motivo de la Sesión:")
+            
+            if st.button("Confirmar Cita Médica", use_container_width=True, type="primary"):
+                timestamp_str = f"{f_elegida} {h_elegida.strftime('%H:%M:%S')}"
+                conn = conectar_db()
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO citas (expediente_id, fecha_hora, estado, motivo) VALUES (?, ?, 'Pendiente', ?)",
+                               (opciones_alumnos[alumno_asignado], timestamp_str, mot_cita_new.strip()))
+                conn.commit()
+                conn.close()
+                st.success("✅ ¡Cita Agendada!")
+                st.session_state.sub_vista_lateral = "navegacion"
+                st.session_state.menu_actual = "🏠 Inicio y Planner"
+                st.rerun()
+
+# Carga global de datos para la pantalla principal y calendario
 conn = conectar_db()
 df_todas_citas = pd.read_sql_query("""
     SELECT c.id as [ID Cita], e.nombre as [Paciente], e.matricula as [Matrícula], 
@@ -142,7 +233,7 @@ if not df_todas_citas.empty:
     df_todas_citas['hora_solo'] = df_todas_citas['datetime_obj'].dt.strftime('%H:%M')
 
 # ==============================================================================
-# MÓDULO 1: INICIO Y PLANNER (DISEÑO ORIGINAL RESTAURADO CON CALENDARIO ABAJO)
+# MÓDULO 1: INICIO Y PLANNER (DISEÑO LIMPIO ORIGINAL RESTAURADO COMPLETAMENTE)
 # ==============================================================================
 if st.session_state.menu_actual == "🏠 Inicio y Planner":
     st.title("🏫 Consultorio Psicológico DACYTI")
@@ -150,144 +241,34 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
     
     st.markdown("---")
     
-    # Botones principales superiores de la pantalla de inicio
+    # Botones superiores que abren las ventanas de costado (estilo Notion)
     col_btn1, col_btn2, _ = st.columns([1, 1, 2])
     with col_btn1:
         if st.button("📝 Abrir Nuevo Expediente", use_container_width=True):
-            st.session_state.mostrar_nuevo_expediente = not st.session_state.mostrar_nuevo_expediente
-            st.session_state.mostrar_nueva_agenda = False
+            st.session_state.sub_vista_lateral = "nuevo_expediente"
+            st.rerun()
     with col_btn2:
         if st.button("📅 Nueva Agenda (Cita)", use_container_width=True):
-            st.session_state.mostrar_nueva_agenda = not st.session_state.mostrar_nueva_agenda
-            st.session_state.mostrar_nuevo_expediente = False
+            st.session_state.sub_vista_lateral = "nueva_cita"
+            st.rerun()
 
-    # Desplegable: Abrir Nuevo Expediente
-    if st.session_state.mostrar_nuevo_expediente:
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.container():
-            col_tit_exp, col_ret_exp = st.columns([3, 1])
-            with col_tit_exp:
-                st.markdown("### 📝 Abrir Nuevo Expediente")
-                st.caption("Complete los datos del alumno institucional.")
-            with col_ret_exp:
-                if st.button("Retraer >>", key="btn_retraer_exp", use_container_width=True):
-                    st.session_state.mostrar_nuevo_expediente = False
-                    st.rerun()
-            
-            st.markdown("#### 🏛️ Ubicación Académica")
-            div_aca = st.selectbox("División Académica:", ["DACYTI", "DAIA", "DACEA", "DAMJS"], key="inc_div_aca")
-            
-            carreras_dict = {
-                "DACYTI": ["Licenciatura en Tecnologías de la Información", "Licenciatura en Sistemas Computacionales", "Licenciatura en Telemática", "Ingeniería en Informática Administrativa"],
-                "DAIA": ["Ingeniería Civil", "Ingeniería Mecánica", "Ingeniería Eléctrica"],
-                "DACEA": ["Licenciatura en Administración", "Licenciatura en Contaduría Pública"],
-                "DAMJS": ["Licenciatura en Derecho", "Licenciatura en Psicología"]
-            }
-            carrera_sel = st.selectbox("Carrera Universitaria:", carreras_dict.get(div_aca, ["General"]), key="inc_carrera_sel")
-            
-            st.markdown("---")
-            st.markdown("#### 👤 Datos Personales y Clínicos")
-            col_e1, col_e2 = st.columns(2)
-            with col_e1:
-                nom_completo = st.text_input("Nombre Completo del Alumno:", key="inc_nom")
-                mat_institucional = st.text_input("Matrícula Institucional:", key="inc_mat")
-                edad_alumno = st.number_input("Edad:", min_value=15, max_value=90, value=20, key="inc_edad")
-            with col_e2:
-                gen_alumno = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"], key="inc_gen")
-                sem_alumno = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"], key="inc_sem")
-                tel_contacto = st.text_input("Teléfono de Contacto:", key="inc_tel")
-                
-            corr_electronico = st.text_input("Correo Electrónico:", key="inc_correo")
-            tags_diag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", key="inc_tags")
-            mot_consulta = st.text_area("Motivo de Consulta Inicial:", key="inc_motivo")
-            
-            if st.button("Guardar Expediente Completo", key="btn_guardar_exp_inc"):
-                if not nom_completo or not mat_institucional:
-                    st.error("❌ Los campos Nombre y Matrícula son obligatorios.")
-                else:
-                    try:
-                        conn = conectar_db()
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, etiquetas, motivo_consulta)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (mat_institucional.strip().upper(), nom_completo.strip(), gen_alumno, int(edad_alumno), div_aca, carrera_sel, sem_alumno, tel_contacto.strip(), corr_electronico.strip(), tags_diag.strip(), mot_consulta.strip()))
-                        conn.commit()
-                        conn.close()
-                        st.success("✅ El expediente se ha registrado con éxito.")
-                        st.session_state.mostrar_nuevo_expediente = False
-                        st.rerun()
-                    except sqlite3.IntegrityError:
-                        st.error("❌ Conflicto: Esta matrícula ya se encuentra registrada.")
-
-    # Desplegable: Nueva Agenda
-    if st.session_state.mostrar_nueva_agenda:
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.container():
-            col_tit_age, col_ret_age = st.columns([3, 1])
-            with col_tit_age:
-                st.markdown("### 📅 Nueva Agenda")
-                st.caption("Complete los datos para agendar la sesión.")
-            with col_ret_age:
-                if st.button("Retraer >>", key="btn_retraer_age", use_container_width=True):
-                    st.session_state.mostrar_nueva_agenda = False
-                    st.rerun()
-                    
-            conn = conectar_db()
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, nombre, matricula FROM expedientes ORDER BY nombre ASC")
-            alumnos_db = cursor.fetchall()
-            conn.close()
-            
-            if not alumnos_db:
-                st.warning("⚠️ No existen expedientes en el sistema. Abra un expediente primero.")
-            else:
-                opciones_alumnos = {f"{a[1]} ({a[2]})": a[0] for a in alumnos_db}
-                alumno_asignado = st.selectbox("Seleccionar Alumno Paciente:", list(opciones_alumnos.keys()), key="inc_age_paciente")
-                
-                col_f1, col_f2 = st.columns(2)
-                with col_f1:
-                    f_elegida = st.date_input("Fecha de la Consulta:", value=datetime.today(), key="inc_age_fecha")
-                with col_f2:
-                    h_elegida = st.time_input("Hora de la Consulta:", value=datetime.now().time(), key="inc_age_hora")
-                    
-                mot_cita_new = st.text_area("Motivo o Descripción de Sesión:", key="inc_age_motivo")
-                
-                if st.button("Confirmar Cita Médica", key="btn_guardar_cita_inc", use_container_width=True):
-                    timestamp_str = f"{f_elegida} {h_elegida.strftime('%H:%M:%S')}"
-                    conn = conectar_db()
-                    cursor = conn.cursor()
-                    cursor.execute("INSERT INTO citas (expediente_id, fecha_hora, estado, motivo) VALUES (?, ?, 'Pendiente', ?)",
-                                   (opciones_alumnos[alumno_asignado], timestamp_str, mot_cita_new.strip()))
-                    conn.commit()
-                    conn.close()
-                    st.success("✅ Cita registrada de manera exitosa en la agenda.")
-                    st.session_state.mostrar_nueva_agenda = False
-                    st.rerun()
-
-    # --------------------------------------------------------------------------
-    # SECCIÓN DE CITAS PROGRAMADAS (Fiel a image_0b8f3a.png / image_0c1d25.png)
-    # --------------------------------------------------------------------------
+    # Sección de Citas Programadas
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📄 Citas Programadas")
     
     if df_todas_citas.empty:
         st.info("No se encuentran registros de citas programadas en la base de datos.")
     else:
-        # Mostramos las citas pendientes principales en el planner
         df_pendientes = df_todas_citas[df_todas_citas['Estado'] == 'Pendiente'].head(5)
         if df_pendientes.empty:
             st.info("No hay citas pendientes prioritarias en la agenda.")
         else:
-            # Renderizado limpio en formato tabla informativa
             st.dataframe(
                 df_pendientes[['Paciente', 'Fecha y Hora', 'Estado', 'Motivo']], 
                 use_container_width=True
             )
 
-    # --------------------------------------------------------------------------
-    # SECCIÓN: VISUALIZADOR DE CALENDARIO CLÍNICO ABAJO (Fiel a image_0c1d25.png)
-    # --------------------------------------------------------------------------
+    # Visualizador de Calendario Clínico abajo
     st.markdown("---")
     st.subheader("🗓️ Visualizador de Calendario Clínico")
     
@@ -393,7 +374,6 @@ elif st.session_state.menu_actual == "📄 Expedientes Electrónicos":
     """, conn)
     conn.close()
     
-    # Colocamos aquí el contador movido de la pantalla de inicio
     total_exp = len(df_expedientes)
     st.metric(label="🗂️ Total de Expedientes Abiertos", value=int(total_exp))
     st.markdown("---")
@@ -416,7 +396,6 @@ elif st.session_state.menu_actual == "📅 Agenda de Citas":
     st.title("📅 Agenda de Citas")
     st.subheader("Control de Citas Clínicas e Historial de Sesiones")
     
-    # Calculamos y colocamos aquí los contadores movidos de la pantalla de inicio
     if not df_todas_citas.empty:
         citas_pen = len(df_todas_citas[df_todas_citas['Estado'] == 'Pendiente'])
         citas_com = len(df_todas_citas[df_todas_citas['Estado'] == 'Completada'])

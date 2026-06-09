@@ -91,77 +91,85 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - LEY DE CONTRASTE DINÁMICO (ANTI MODO OSCURO)
+# INYECCIÓN DE CSS - REDISEÑO DE FONDO CLARO CON CAMPOS OSCUROS DE ALTA VISIBILIDAD
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. CONTROL DE CONTRASTE BASE SEGÚN EL ENTORNO */
-    html, body, [data-testid="stAppViewContainer"] {
+    /* 1. RESTAURACIÓN DEL FONDO CLARO GLOBAL (ESTILO NOTION) */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: #ffffff !important;
+        color: #191919 !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
 
-    /* Forzar visibilidad de títulos principales en la zona clara de trabajo */
-    .main h1, .main h2, .main h3, .main h4, .main p, .main span {
+    /* Forzar que los títulos de la app sean siempre oscuros y legibles en el fondo blanco */
+    .main h1, .main h2, .main h3, .main h4, .main p, .main span, .main strong {
         color: #191919 !important;
     }
 
-    /* 2. ENTRADAS DE DATOS BLINDADAS (EDAD, CARRERA, ETC.) EN FONDOS OSCUROS/EMERGENTES */
-    div[data-testid="stForm"] label, 
-    div[data-testid="stForm"] .stWidgetFormLabel,
-    div[data-testid="stForm"] [data-testid="stWidgetLabel"] p {
-        color: #ffffff !important; /* Letra clara sobre fondo oscuro de formulario */
+    /* 2. DISEÑO DE LAS ETIQUETAS (EDAD, CARRERA, ETC.) EXTRALLEGIBLES */
+    [data-testid="stWidgetLabel"] p, 
+    .stWidgetFormLabel label,
+    div[data-testid="stForm"] label {
+        color: #1e293b !important; /* Azul oscuro/negro para las etiquetas externas */
         font-weight: 600 !important;
         font-size: 14px !important;
     }
 
-    /* Evitar el efecto "letra invisible" dentro de los campos selectores e inputs */
-    div[data-baseweb="select"] div, 
+    /* 3. BANNERS/CAJAS DE SELECCIÓN OSCURAS CON LETRAS GRIS CLARO */
+    div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] input, 
-    div[data-baseweb="textarea"] textarea {
-        color: #191919 !important; /* Texto oscuro para escribir en cajas claras */
-        font-weight: 500 !important;
+    div[data-baseweb="textarea"] textarea,
+    div[data-testid="stMarkdownContainer"] input {
+        background-color: #1e293b !important; /* Fondo oscuro para el banner de selección */
+        color: #e2e8f0 !important;            /* Letras gris claro fijas */
+        border: 1px solid #334155 !important;
+        border-radius: 6px !important;
     }
-    
-    /* Arreglo específico para las opciones del dropdown desplegable */
+
+    /* Asegurar que los botones de incremento/decremento en el campo de Edad se vean bien */
+    div[data-testid="stNumberInput"] button {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+
+    /* Forzar el color de las opciones desplegables dentro del menú flotante */
+    div[data-baseweb="menu"] {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+    }
     div[data-baseweb="menu"] li, div[role="listbox"] div {
-        color: #191919 !important;
-        background-color: #ffffff !important;
+        color: #e2e8f0 !important; /* Letras gris claro en la lista desplegable */
+        background-color: #1e293b !important;
+    }
+    div[data-baseweb="menu"] li:hover {
+        background-color: #475569 !important; /* Efecto hover elegante */
+        color: #ffffff !important;
     }
 
-    /* 3. FORMATO SIDE-PEEK DESLIZABLE ESTILO NOTION CARD */
+    /* 4. PANEL LATERAL DESLIZABLE (SIDE-PEEK RESPETANDO EL ENTORNO CLARO) */
     div[data-testid="stForm"] { 
-        background-color: #1e293b !important; /* Azul profundo oscuro de fondo */
-        border-left: 2px solid #334155 !important; 
-        border-top: none !important; border-bottom: none !important; border-right: none !important;
-        box-shadow: -4px 0px 18px rgba(0, 0, 0, 0.2) !important;
-        padding: 26px !important;
-        border-radius: 0px !important;
+        background-color: #f8fafc !important; /* Fondo gris claro Notion card */
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.05) !important;
+        padding: 24px !important;
+        border-radius: 8px !important;
     }
 
-    /* 4. BARRA LATERAL IZQUIERDA (FONDO CLARO = LETRA OSCURA COHERENTE) */
+    /* 5. BARRA LATERAL IZQUIERDA DE NAVEGACIÓN */
     [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
         border-right: 1px solid #e9e9e8 !important; 
     }
     [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] p {
-        color: #1e293b !important; /* Azul oscuro coherente con la paleta */
+        color: #1e293b !important;
         font-weight: 600 !important;
     }
-    
-    /* Botón Cerrar Sesión en barra clara */
-    [data-testid="stSidebar"] .stButton button {
-        color: #ffffff !important;
-        background-color: #64748b !important; /* Gris azulado visible */
-        border: none !important;
-    }
-    [data-testid="stSidebar"] .stButton button:hover {
-        background-color: #475569 !important;
-    }
 
-    /* 5. TABLA COMPACTA DE CITAS ESTILO NOTION */
+    /* 6. TABLA ESTRUCTURADA ESTILO NOTION */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -196,7 +204,7 @@ st.markdown("""
         color: #191919 !important;
     }
     
-    /* Badges de estado */
+    /* Badges de estado de cita */
     .status-badge {
         padding: 2px 8px;
         border-radius: 4px;
@@ -207,7 +215,7 @@ st.markdown("""
     .status-realizada { background-color: #e2f2e4; color: #2e6930 !important; }
     .status-cancelada { background-color: #ffe2dd; color: #cc3333 !important; }
     
-    /* 6. BOTONES GENERALES DE LA PÁGINA */
+    /* Botones de acción principales */
     .main .stButton button {
         background-color: #ffffff !important;
         color: #191919 !important;
@@ -216,14 +224,6 @@ st.markdown("""
     }
     .main .stButton button:hover {
         background-color: #f4f5f6 !important;
-    }
-    
-    /* Botón de guardar dentro del formulario oscuro (Fondo oscuro = Botón destacado claro) */
-    div[data-testid="stForm"] .stButton button {
-        background-color: #38bdf8 !important; /* Azul cielo brillante */
-        color: #0f172a !important; /* Letra oscura para máximo contraste */
-        font-weight: bold !important;
-        border: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -406,18 +406,18 @@ else:
                             st.markdown("<center><span style='color:#a0a0a0; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: SIDE-PEEK DESLIZABLE COMPATIBLE CON MODO OSCURO
+        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO (FONDO CLARO)
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
                 c_tit, c_close = st.columns([3.8, 1.6])
                 with c_tit:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.markdown("<h4 style='color:#ffffff !important; margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#191919 !important; margin:0;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
                 with c_close:
                     if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
                         st.session_state.side_peek_modo = None
@@ -469,7 +469,7 @@ else:
                     conn.close()
 
                     if datos_cita:
-                        st.markdown(f"<span style='color:#bae6fd !important; font-size:13px;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
+                        st.markdown(f"<span style='color:#0284c7 !important; font-size:13px; font-weight: 500;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
                         with st.form("form_edicion_cita_notion"):
                             peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
                             peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
@@ -486,7 +486,7 @@ else:
                                 conn.close()
                                 st.session_state.side_peek_modo = None
                                 st.session_state.cita_seleccionada_id = None
-                                st.rerun()
+                                r_rerun()
 
                 # --- AGENDAR NUEVA CITA ---
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":

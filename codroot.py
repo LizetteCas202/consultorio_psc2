@@ -105,7 +105,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# FLUJO 1: PANTALLA DE LOGIN TOTALMENTE CENTRADA Y CORREGIDA EN VISIBILIDAD
+# FLUJO 1: PANTALLA DE LOGIN
 # -------------------------------------------------------------------------------------
 if not st.session_state.autenticado:
     st.markdown("""
@@ -190,7 +190,7 @@ else:
         <style>
         .stApp {{ background-color: #ffffff !important; }}
         
-        /* FIX CRÍTICO BARRA LATERAL: Forzar letras a azul marino oscuro */
+        /* FIX CRÍTICO BARRA LATERAL */
         [data-testid="stSidebar"] {{ 
             background-color: #f4f5f6 !important; 
             border-right: 2px solid #CCCACC; 
@@ -199,7 +199,6 @@ else:
             color: #081849 !important;
             font-weight: 700 !important;
         }}
-        /* Modificar el color de los Radio Buttons seleccionados en la barra lateral */
         [data-testid="stSidebar"] div[data-checked="true"] > div {{
             background-color: #213885 !important;
         }}
@@ -217,6 +216,7 @@ else:
             border-radius: 8px;
         }}
         
+        /* Botones generales */
         div.stButton > button, .stButton button, [data-testid="stForm"] button {{
             background-color: #213885 !important;
             color: #ffffff !important;
@@ -226,6 +226,15 @@ else:
         }}
         div.stButton > button p, .stButton button p {{ color: #ffffff !important; }}
         div.stButton > button:hover {{ background-color: #081849 !important; }}
+        
+        /* Estilos específicos para st.popover de barra de herramientas */
+        div[data-testid="stPopover"] > button {{
+            background-color: #213885 !important;
+            color: white !important;
+            border-radius: 6px !important;
+            font-weight: bold !important;
+            width: 100% !important;
+        }}
         
         .constante-header-container {{
             display: flex;
@@ -253,7 +262,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Barra lateral de Navegación con Visibilidad Corregida al 100%
+    # Barra lateral de Navegación
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
     seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     
@@ -264,10 +273,76 @@ else:
         st.rerun()
 
     # =================================================================================
-    # MÓDULO 0: INICIO Y PLANNER DINÁMICO TIPO GOOGLE CALENDAR (SIN LÍMITE DE TIEMPO)
+    # MÓDULO 0: INICIO Y PLANNER DINÁMICO TIPO GOOGLE CALENDAR
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
         st.markdown("<h3>Panel de Inicio - Agenda del Día</h3>", unsafe_allow_html=True)
+        
+        # 🛠️ BARRA DE HERRAMIENTAS RÁPIDAS (ACCESOS DIRECTOS SOLICITADOS)
+        st.markdown("##### ⚡ Acciones Clínicas Rápidas")
+        tool_c1, tool_c2, tool_c3 = st.columns([1, 1, 2])
+        
+        with tool_c1:
+            # Popover interactivo para registrar expediente en caliente
+            with st.popover("➕ Agregar Nuevo Expediente"):
+                st.markdown("##### Registro Express de Alumno")
+                quick_nom = st.text_input("Nombre Completo:", key="q_nom")
+                quick_mat = st.text_input("Matrícula Institucional:", key="q_mat")
+                quick_div = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()), key="q_div")
+                quick_car = st.selectbox("Carrera:", ESTRUCTURA_UJAT[quick_div], key="q_car")
+                quick_obs = st.text_area("Motivo de consulta / Notas:", key="q_obs")
+                
+                if st.button("Guardar Expediente Desde Inicio"):
+                    if quick_mat.strip() and quick_nom.strip():
+                        conn = conectar_db_local()
+                        cursor = conn.cursor()
+                        try:
+                            cursor.execute("""
+                                INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                VALUES (?, ?, 'No Especificado', 20, ?, ?, '1ro', '', '', ?, '')
+                            """, (quick_mat.strip(), quick_nom.strip(), quick_div, quick_car, quick_obs))
+                            conn.commit()
+                            st.success("¡Expediente creado con éxito, comadre!")
+                            st.rerun()
+                        except sqlite3.IntegrityError:
+                            st.error("Esa matrícula ya existe.")
+                        finally: conn.close()
+                    else: st.warning("Completa nombre y matrícula.")
+                    
+        with tool_c2:
+            # Popover interactivo para agendar cita en caliente
+            with st.popover("📅 Agendar Nueva Cita"):
+                st.markdown("##### Programar Sesión Clínica")
+                quick_search_mat = st.text_input("Ingresa Matrícula del Alumno:", key="q_c_mat")
+                
+                if quick_search_mat.strip():
+                    conn = conectar_db_local()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, nombre FROM expedientes WHERE matricula = ?", (quick_search_mat.strip(),))
+                    res_al = cursor.fetchone()
+                    conn.close()
+                    
+                    if res_al:
+                        st.info(f"Paciente: {res_al[1]}")
+                        q_fecha = st.date_input("Día de la Cita:", value=date.today(), key="q_f")
+                        q_hora = st.time_input("Hora de la Cita:", key="q_h")
+                        q_motivo = st.text_area("Motivo psicológico:", key="q_m")
+                        
+                        if st.button("Confirmar Cita Desde Inicio"):
+                            f_iso = datetime.combine(q_fecha, q_hora).strftime("%Y-%m-%d %H:%M:%S")
+                            conn = conectar_db_local()
+                            conn.cursor().execute("""
+                                INSERT INTO citas (expediente_id, fecha_hora, estado, motivo, notas_evolucion)
+                                VALUES (?, ?, 'Pendiente', ?, '')
+                            """, (res_al[0], f_iso, q_motivo))
+                            conn.commit()
+                            conn.close()
+                            st.success("¡Cita agendada correctamente!")
+                            st.rerun()
+                    else:
+                        st.error("Alumno no encontrado. Ábrele un expediente primero.")
+
+        st.markdown("---")
         
         col_izq_p, col_der_p = st.columns([1.1, 1.9])
         
@@ -303,14 +378,18 @@ else:
         with col_der_p:
             st.markdown("#### 📅 Planner Interactivo Estilo Google Calendar")
             
-            # Controles dinámicos sin límite de tiempo (Cualquier Año o Mes)
+            # CONTROL DESPLEGABLE COMO GOOGLE CALENDAR (Reemplazo de los radio buttons)
             c_p1, c_p2 = st.columns(2)
             with c_p1:
-                tipo_formato = st.radio("Formato de Visualización:", ["Semanal (Bloque de Horas)", "Mensual (Carga General)"], horizontal=True)
+                tipo_formato = st.selectbox(
+                    "Formato de Visualización:",
+                    ["Semanal (Bloque de Horas)", "Mensual (Carga General)"],
+                    index=0
+                )
             with c_p2:
-                fecha_pivote = st.date_input("Selecciona Fecha de Enfoque:", value=date.today())
+                fecha_pivote = st.date_input("Selecciona Fecha de Enfoque:", value=date.today(), key="planner_pivote")
 
-            # Extraer todas las citas de la BD para mapearlas en el calendario
+            # Extraer todas las citas de la BD
             conn = conectar_db_local()
             df_todas_citas = pd.read_sql_query("""
                 SELECT c.fecha_hora, e.nombre, c.estado, c.motivo 
@@ -318,20 +397,15 @@ else:
             """, conn)
             conn.close()
 
-            # --- FORMATO 1: VISTA SEMANAL (DÍAS VS HORAS) ---
+            # --- FORMATO 1: VISTA SEMANAL ---
             if tipo_formato == "Semanal (Bloque de Horas)":
-                # Calcular los días de la semana de la fecha seleccionada
                 inicio_semana = fecha_pivote - timedelta(days=fecha_pivote.weekday())
                 dias_semana = [inicio_semana + timedelta(days=i) for i in range(7)]
                 nombres_columnas = [d.strftime('%A (%d/%m)') for d in dias_semana]
                 
-                # Definir bloques de horas de oficina (8 AM a 6 PM)
                 horas_bloque = [f"{str(h).zfill(2)}:00" for h in range(8, 19)]
-                
-                # Crear la matriz vacía estructurada como el calendario de Google
                 matriz_semana = pd.DataFrame(index=horas_bloque, columns=nombres_columnas).fillna("")
                 
-                # Llenar la matriz con citas reales si existen
                 if not df_todas_citas.empty:
                     for _, cita in df_todas_citas.iterrows():
                         try:
@@ -348,14 +422,12 @@ else:
                 st.caption(f"📅 Visualizando la semana del {inicio_semana.strftime('%d/%m/%Y')} al {(inicio_semana+timedelta(days=6)).strftime('%d/%m/%Y')}")
                 st.dataframe(matriz_semana, use_container_width=True)
 
-            # --- FORMATO 2: VISTA MENSUAL (SIN LÍMITE DE TIEMPO) ---
+            # --- FORMATO 2: VISTA MENSUAL ---
             else:
                 año_sel = fecha_pivote.year
                 mes_sel = fecha_pivote.month
                 
                 num_dias = calendar.monthrange(año_sel, mes_sel)[1]
-                dias_mes = [date(año_sel, mes_sel, dia) for dia in range(1, num_dias + 1)]
-                
                 matriz_mes = pd.DataFrame(index=[f"Día {d}" for d in range(1, num_dias + 1)], columns=["Citas Programadas en el Día"]).fillna("Sin citas")
                 
                 if not df_todas_citas.empty:
@@ -411,7 +483,7 @@ else:
             
             st.markdown("---")
             tags = st.text_input("Diagnóstico Inicial / Etiquetas (Separados por comas):", key="form_tags")
-            obs = st.text_area("Notas Iniciales del Expediente Clínico:", key="form_obs")
+            obs = st.text_area("Motivo de Consulta:", key="form_obs")
             
             if st.button("Registrar y Almacenar Expediente"):
                 if mat.strip() and nom.strip():
@@ -485,7 +557,7 @@ else:
             
         with col_ag2:
             st.markdown("#### 🔍 Agendar Nueva Sesión (Filtro por Matrícula)")
-            mat_b = st.text_input("Paso 1: Ingresa la Matrícula del Alumno:")
+            mat_b = st.text_input("Paso 1: Ingresa la Matrícula del Alumno:", key="agenda_panel_mat")
             
             if mat_b.strip():
                 conn = conectar_db_local()
@@ -496,11 +568,11 @@ else:
                 
                 if res_alumno:
                     st.success(f"✅ Alumno Identificado: {res_alumno[1]}")
-                    f_c = st.date_input("Programar Día:", value=date.today())
-                    h_c = st.time_input("Programar Hora:")
-                    mot = st.text_area("Motivo de la sesión psicológica:")
+                    f_c = st.date_input("Programar Día:", value=date.today(), key="agenda_panel_date")
+                    h_c = st.time_input("Programar Hora:", key="agenda_panel_time")
+                    mot = st.text_area("Motivo de la sesión psicológica:", key="agenda_panel_motivo")
                     
-                    if st.button("Confirmar Agendación de Cita"):
+                    if st.button("Confirmar Agendación de Cita", key="agenda_panel_btn"):
                         f_iso = datetime.combine(f_c, h_c).strftime("%Y-%m-%d %H:%M:%S")
                         conn = conectar_db_local()
                         conn.cursor().execute("""
@@ -515,7 +587,7 @@ else:
                     st.error("❌ Error: Este alumno no está registrado. Abre un expediente primero.")
 
     # =================================================================================
-    # MÓDULO 3: REPORTES EJECUTIVOS Y ESTADÍSTICAS MULTIDIMENSIONALES
+    # MÓDULO 3: REPORTES EJECUTIVOS
     # =================================================================================
     elif seccion == "📊 Reportes Ejecutivos":
         st.markdown("<h3>Panel de Métricas y Estadísticas Multidimensionales</h3>", unsafe_allow_html=True)

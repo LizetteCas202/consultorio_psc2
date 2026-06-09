@@ -101,7 +101,14 @@ if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = "
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
-# Mapeo maestro de Divisiones y Carreras de la UJAT (Estructura Dinámica)
+# Callback para actualizar dinámicamente la división seleccionada desde el formulario sin recargar la página entera
+if "division_seleccionada_form" not in st.session_state:
+    st.session_state.division_seleccionada_form = "DACYTI"
+
+def actualizar_division_callback():
+    st.session_state.division_seleccionada_form = st.session_state.temp_division_selector
+
+# Mapeo maestro exclusivo: Divisiones y Carreras de la UJAT (Campus Chontalpa)
 CARRERAS_POR_DIVISION = {
     "DACYTI": [
         "Licenciatura en Tecnologías de la Información",
@@ -116,49 +123,11 @@ CARRERAS_POR_DIVISION = {
         "Licenciatura en Arquitectura",
         "Ingeniería en Agua"
     ],
-    "DACEA": [
-        "Licenciatura en Administración",
-        "Licenciatura en Contaduría Pública",
-        "Licenciatura en Mercadotecnia",
-        "Licenciatura en Economía",
-        "Licenciatura en Negocios Internacionales"
-    ],
-    "DACS": [
-        "Licenciatura en Médico Cirujano",
-        "Licenciatura en Psicología",
-        "Licenciatura en Enfermería",
-        "Licenciatura en Nutrición",
-        "Licenciatura en Cirujano Dentista"
-    ],
-    "DACBiol": [
-        "Licenciatura en Biología",
-        "Licenciatura en Ciencias Ambientales",
-        "Ingeniería Ambiental"
-    ],
     "DACB": [
         "Licenciatura en Ciencias Computacionales",
         "Licenciatura en Matemáticas",
         "Licenciatura en Física",
         "Licenciatura en Químico Farmacéutico Biólogo"
-    ],
-    "DACSyH": [
-        "Licenciatura en Derecho",
-        "Licenciatura en Historia",
-        "Licenciatura en Sociología",
-        "Licenciatura en Comunicación"
-    ],
-    "DAEA": [
-        "Licenciatura en Ciencias de la Educación",
-        "Licenciatura en Idiomas"
-    ],
-    "DAMR": [
-        "Ingeniería Acuícola",
-        "Licenciatura en Informática",
-        "Licenciatura en Seguridad Alimentaria"
-    ],
-    "DAMJ": [
-        "Licenciatura en Enfermería",
-        "Licenciatura en Nutrición"
     ]
 }
 
@@ -520,18 +489,8 @@ else:
 
                 # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    # Solución al error de carga: Los selectores dinámicos se renderizan AFUERA del st.form para permitir recarga en tiempo real
-                    st.markdown("##### 🏛️ Ubicación Académica")
-                    lista_divisiones = list(CARRERAS_POR_DIVISION.keys())
-                    exp_div = st.selectbox("División Académica:", options=lista_divisiones, key="exp_div_selector")
-                    
-                    lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
-                    exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
-                    
-                    st.markdown("---")
-                    
                     with st.form("form_nuevo_expediente_notion"):
-                        st.markdown("##### 👤 Datos Personales y Clínicos")
+                        st.markdown("##### 👤 Datos Personales y Académicos")
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
                         exp_mat = st.text_input("Matrícula Institucional:")
                         
@@ -539,8 +498,25 @@ else:
                         with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                         with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                         
+                        # --- REPARACIÓN MAESTRA DE UBICACIÓN ACADÉMICA (CAMPUS CHONTALPA) INSIDE FORM ---
+                        lista_divisiones = list(CARRERAS_POR_DIVISION.keys())
+                        
+                        # El selector de división actualiza el estado mediante un callback inmediato
+                        exp_div = st.selectbox(
+                            "División Académica:", 
+                            options=lista_divisiones, 
+                            key="temp_division_selector", 
+                            on_change=actualizar_division_callback
+                        )
+                        
+                        # Resolvemos las carreras usando el session_state actualizado para evitar desfases estáticos
+                        lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(st.session_state.division_seleccionada_form, [])
+                        exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada, key="exp_car_selector")
+                        
                         exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
+                        st.markdown("---")
+                        st.markdown("##### 🩺 Campos de Contacto y Seguimiento")
                         exp_tel = st.text_input("Teléfono de Contacto:", value="")
                         exp_cor = st.text_input("Correo Electrónico:", value="")
                         exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
@@ -620,7 +596,7 @@ else:
                                 conn.commit()
                                 conn.close()
                                 st.session_state.side_peek_modo = None
-                                st.rerun()  # <--- REPARADO: st.rerun() Oficial Streamlit
+                                st.rerun()
                         else:
                             st.warning("No existen expedientes registrados para asignar la cita.")
                             st.form_submit_button("Aceptar", disabled=True)

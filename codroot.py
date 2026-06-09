@@ -1,5 +1,5 @@
 # =================================================================
-#    SISTEMA COMPLETO CORREGIDO: Consultorio Psicológico DACYTI
+#    SISTEMA COMPLETO: Consultorio Psicológico DACYTI
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -91,11 +91,15 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - SANITIZADO (ELIMINA RECUADROS FANTASMAS)
+# INYECCIÓN MAESTRA DE CSS - PURGA DE RECUADROS FANTASMAS Y ELEMENTOS FLOTANTES
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. ELIMINAR CUALQUIER CAPA FLOTANTE O POPOVER VIEJO QUE HAGA INTERFERENCIA */
+    /* 1. ELIMINAR CONTENEDORES DE IMÁGENES FLOTANTES O RECUADROS RESIDUALES EN EL CUERPO */
+    div[data-testid="stImage"] img {
+        max-width: 100%;
+    }
+    /* Bloquea la superposición de capas absolutas o popovers que obstruyan la pantalla */
     div[data-testid="stPopover"], div[class*="stPopover"], .stTooltipHoverTarget {
         position: static !important;
         box-shadow: none !important;
@@ -152,14 +156,14 @@ st.markdown("""
         border-radius: 4px;
         min-height: 85vh;
         position: relative !important;
-        z-index: 999 !important; /* Forza a que se pinte por encima de cualquier bug */
+        z-index: 9999 !important; /* Asegura prioridad sobre cualquier renderizado bugueado */
     }
 
     /* Botón de flechas colapsables Notion estilo nativo */
     .notion-btn-retraer button {
         border: none !important;
         background: transparent !important;
-        font-size: 20px !important;
+        font-size: 18px !important;
         color: #7c7b77 !important;
         font-weight: bold !important;
     }
@@ -200,7 +204,7 @@ if not st.session_state.autenticado:
     st.markdown("### Acceso al Portal Clínico DACYTI")
     u_login = st.text_input("Usuario Corporativo:")
     p_login = st.text_input("Contraseña:", type="password")
-    if st.button("Ingresar Sistema"):
+    if st.button("Ingresar al Sistema"):
         conn = conectar_db_local()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM usuarios WHERE usuario=? AND clave_hash=?", (u_login, p_login))
@@ -226,7 +230,7 @@ else:
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
     seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
-    st.sidebar.write(f"👤 **Profesional:** {st.session_state.usuario_actual}")
+    st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión"):
         st.session_state.autenticado = False
         st.session_state.side_peek_modo = None
@@ -274,7 +278,7 @@ else:
             if not citas_tabla.empty:
                 st.markdown("""
                     <div class="notion-table-header">
-                        <div style="flex: 2; padding-left: 5px;">Aa Nombre de Paciente</div>
+                        <div style="flex: 2; padding-left: 5px;">Aa Nombre del Paciente</div>
                         <div style="flex: 1.5;">📅 Fecha y Hora</div>
                         <div style="flex: 1;">✨ Estado</div>
                         <div style="flex: 1; text-align: center;">⚙️ Acción</div>
@@ -296,15 +300,15 @@ else:
                             st.rerun()
             else:
                 st.markdown("""
-                    <div style="background-color: #ecf3f5; padding: 12px; border-left: 4px solid #578694; color: #2c525d; border-radius: 4px; font-size: 14px;">
-                        No tienes citas registradas para hoy, comadre.
+                    <div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #37352f; border-radius: 4px; font-size: 14px;">
+                        No se encuentran registros de citas programadas para el día de hoy.
                     </div>
                 """, unsafe_allow_html=True)
 
             st.markdown("---")
 
             # --- PLANNER CLÍNICO (CALENDARIO VISUAL) ---
-            st.markdown("#### 📅 Planner Interactivo Estilo Google Calendar")
+            st.markdown("#### 📅 Planner Interactivo")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
                 tipo_formato = st.selectbox("Formato de Visualización:", ["Mensual (Carga General)", "Semanal (Bloque de Horas)"])
@@ -347,15 +351,15 @@ else:
                     st.markdown("<hr style='margin:2px 0; border-top:1px dashed #e9e9e8;'>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: VENTANA LATERAL LIMPIA SIN INTERFERENCIAS (SIDE PEEK)
+        # COLUMNA DERECHA: VENTANA LATERAL LIMPIA (SIDE PEEK)
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
                 st.markdown('<div class="notion-side-peek-container">', unsafe_allow_html=True)
                 
-                # Botón de cierre nativo sin obstrucción visual
+                # Botón de cierre nativo formal
                 st.markdown('<div class="notion-btn-retraer">', unsafe_allow_html=True)
-                if st.button(">>", help="Retraer panel lateral"):
+                if st.button(">>", help="Ocultar panel lateral"):
                     st.session_state.side_peek_modo = None
                     st.session_state.cita_seleccionada_id = None
                     st.rerun()
@@ -381,12 +385,12 @@ else:
                         exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div])
                         exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
-                        exp_tel = st.text_input("Teléfono:")
+                        exp_tel = st.text_input("Teléfono de Contacto:")
                         exp_cor = st.text_input("Correo Electrónico:")
                         exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):")
                         exp_obs = st.text_area("Motivo de Consulta:", height=100)
                         
-                        if st.form_submit_button("Guardar Expediente", use_container_width=True):
+                        if st.form_submit_button("Registrar Expediente", use_container_width=True):
                             if exp_mat.strip() and exp_nom.strip():
                                 conn = conectar_db_local()
                                 try:
@@ -396,11 +400,10 @@ else:
                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                     """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
                                     conn.commit()
-                                    st.success("¡Expediente guardado exitosamente!")
                                     st.session_state.side_peek_modo = None
                                     st.rerun()
                                 except sqlite3.IntegrityError:
-                                    st.error("Esta matrícula ya existe.")
+                                    st.error("La matrícula ingresada ya se encuentra registrada.")
                                 finally: conn.close()
 
                 # FORMULARIO 2: VER / EDITAR CITA
@@ -417,20 +420,19 @@ else:
                         st.caption(f"Matrícula: {datos_cita[8]}")
                         
                         with st.form("form_edicion_cita_notion"):
-                            peek_estado = st.selectbox("Estado:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
+                            peek_estado = st.selectbox("Estado de la Cita:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
                             peek_fecha = st.text_input("Fecha y Hora:", value=datos_cita[2], disabled=True)
                             peek_motivo = st.text_area("Motivo Clínico:", value=datos_cita[4], disabled=True)
                             peek_notas = st.text_area("Notas Clínicas de Evolución:", value=datos_cita[5], height=120)
-                            peek_tags = st.text_input("Etiquetas:", value=datos_cita[6])
+                            peek_tags = st.text_input("Etiquetas Diagnósticas:", value=datos_cita[6])
 
-                            if st.form_submit_button("Sincronizar Cambios", use_container_width=True):
+                            if st.form_submit_button("Actualizar Registro", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                                 cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                                 conn.commit()
                                 conn.close()
-                                st.success("Cambios guardados.")
                                 st.session_state.side_peek_modo = None
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
@@ -447,9 +449,9 @@ else:
                         
                         with st.form("form_nueva_cita_notion"):
                             paciente_sel = st.selectbox("Seleccionar Alumno:", list(opciones_pacientes.keys()))
-                            fecha_cita = st.date_input("Fecha:", value=date.today())
-                            hora_cita = st.time_input("Hora:")
-                            motivo_cita = st.text_area("Motivo:")
+                            fecha_cita = st.date_input("Fecha Programada:", value=date.today())
+                            hora_cita = st.time_input("Hora Programada:")
+                            motivo_cita = st.text_area("Motivo de la Sesión:")
                             
                             if st.form_submit_button("Confirmar Cita", use_container_width=True):
                                 conn = conectar_db_local()
@@ -461,7 +463,6 @@ else:
                                 """, (opciones_pacientes[paciente_sel], fecha_hora_str, motivo_cita))
                                 conn.commit()
                                 conn.close()
-                                st.success("Cita agendada.")
                                 st.session_state.side_peek_modo = None
                                 st.rerun()
 

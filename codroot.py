@@ -78,7 +78,7 @@ def inicializar_sistema_db():
 
 inicializar_sistema_db()
 
-# --- 3. CONTROL DE ESTADOS DE SESIÓN (SIDE PEEK MULTIMODAL SUPERPUESTO) ---
+# --- 3. CONTROL DE ESTADOS DE SESIÓN ---
 if "autenticado" not in st.session_state: st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = ""
 
@@ -93,35 +93,96 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - VENTANA DE COSTADO SUPERPUESTA CON SCROLL FLOTANTE
+# INYECCIÓN MAESTRA DE CSS - AJUSTADA CON EL BOTÓN NOTION DE COLAPSAR
 # -------------------------------------------------------------------------------------
-st.markdown(f"""
+st.markdown("""
     <style>
     /* Fondo e interfaz clara y limpia */
-    .stApp {{ background-color: #ffffff !important; }}
+    .stApp { background-color: #ffffff !important; }
     
-    /* RESET DE COLORES PARA CONTROLES DE STREAMLIT */
-    div[data-testid="stForm"] {{ background-color: #ffffff !important; border: 1px solid #e9e9e8 !important; }}
-    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {{
+    /* Reset de formularios */
+    div[data-testid="stForm"] { background-color: #ffffff !important; border: 1px solid #e9e9e8 !important; }
+    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
         background-color: #fafafa !important;
         border: 1px solid #e0e0e0 !important;
         color: #37352f !important;
-    }}
+    }
     
-    /* BARRA LATERAL IZQUIERDA DE NAVEGACIÓN */
-    [data-testid="stSidebar"] {{ 
+    /* Barra lateral izquierda */
+    [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
         border-right: 1px solid #e9e9e8; 
-    }}
+    }
     
-    /* CONFIGURACIÓN DE TIPOGRAFÍAS DE NOTION */
-    div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, h1, h3, h4, h5, span {{ 
+    /* Tipografías Notion */
+    div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, h1, h3, h4, h5, span { 
         color: #37352f !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }}
+    }
     
-    /* TABLAS PLANAS ESTILO NOTION */
-    .notion-table-header {{
+    /* Botones generales minimalistas */
+    div.stButton > button, .stButton button {
+        background-color: #ffffff !important;
+        color: #37352f !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 5px !important;
+        font-size: 13px !important;
+    }
+    
+    /* ESTILIZADO DE DOBLE FLECHA NOTION (BOTÓN MINIMIZAR) */
+    .notion-close-trigger button {
+        border: none !important;
+        background: transparent !important;
+        font-size: 18px !important;
+        color: #7c7b77 !important;
+        padding: 4px 8px !important;
+        border-radius: 4px !important;
+        transition: background 0.2s ease;
+    }
+    .notion-close-trigger button:hover {
+        background-color: #efeee3 !important;
+        color: #37352f !important;
+    }
+
+    /* CAPA DE DETECCIÓN CLIC AFUERA (FONDO) */
+    .side-peek-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0,0,0,0.08);
+        z-index: 9999;
+    }
+
+    /* VENTANA LATERAL FLOTANTE SUPERPUESTA CON SCROLL INDEPENDIENTE */
+    .side-peek-floating {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 480px;
+        height: 100vh;
+        background-color: #fbfbfa !important;
+        box-shadow: -8px 0px 30px rgba(0,0,0,0.06);
+        border-left: 1px solid #e3e2e0;
+        z-index: 10000;
+        padding: 24px;
+        overflow-y: auto; /* Scroll vertical si el formulario se extiende */
+        box-sizing: border-box;
+    }
+    
+    /* Estilos de cabeceras y tablas */
+    .constante-header-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #e9e9e8;
+        padding-bottom: 10px;
+    }
+    .constante-header-container h1 { margin: 0 !important; font-size: 22px; font-weight: 600; }
+    
+    .notion-table-header {
         display: flex; 
         background-color: #f7f7f5; 
         font-weight: 600; 
@@ -129,82 +190,7 @@ st.markdown(f"""
         border-bottom: 1px solid #e9e9e8; 
         font-size: 13px; 
         color: #6a6a65;
-    }}
-    
-    /* BADGES DE ESTADO */
-    .badge-notion {{
-        padding: 3px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        display: inline-block;
-    }}
-    .badge-done {{ background-color: #e2f6ea; color: #11683b; }}
-    .badge-progress {{ background-color: #e2f2ff; color: #0c66e4; }}
-    .badge-canceled {{ background-color: #ffebe9; color: #c9372c; }}
-    .badge-empty {{ background-color: #f1f1ef; color: #5a5d56; }}
-
-    /* BOTONES ESTILO NOTION */
-    div.stButton > button, .stButton button {{
-        background-color: #ffffff !important;
-        color: #37352f !important;
-        border: 1px solid #e0e0e0 !important;
-        border-radius: 5px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-        font-size: 13px !important;
-        padding: 5px 12px !important;
-    }}
-    div.stButton > button:hover {{
-        background-color: #f7f7f5 !important;
-        border-color: #d0d0d0 !important;
-    }}
-    
-    .btn-principal button {{
-        background-color: #2383e2 !important;
-        color: white !important;
-        border: 1px solid #2383e2 !important;
-    }}
-    .btn-principal button:hover {{
-        background-color: #1a66b8 !important;
-    }}
-    
-    /* CABECERA GENERAL */
-    .constante-header-container {{
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #e9e9e8;
-        padding-bottom: 10px;
-    }}
-    .constante-header-container h1 {{ margin: 0 !important; color: #37352f !important; font-size: 22px; font-weight: 600; }}
-    
-    /* INTERCEPTOR DE CLIC AFUERA (CAPA TRANSPARENTE DE FONDO) */
-    .side-peek-overlay {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0,0,0,0.15);
-        z-index: 99998;
-    }}
-
-    /* VENTANA DE COSTADO (SIDE PEEK) SUPERPUESTA CON SCROLL INTERNO */
-    .side-peek-floating {{
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 450px; /* Ancho idéntico al solicitado */
-        height: 100vh;
-        background-color: #fbfbfa !important;
-        box-shadow: -4px 0px 25px rgba(0,0,0,0.08);
-        border-left: 1px solid #e0e0de;
-        z-index: 99999;
-        padding: 24px;
-        overflow-y: auto; /* Permite deslizar si el formulario es muy extenso */
-        box-sizing: border-box;
-    }}
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -251,35 +237,25 @@ else:
     # MÓDULO 0: INICIO Y PLANNER DINÁMICO
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
-        
-        # El contenido principal ahora ocupa toda la pantalla para que la ventana se superponga libremente
         col_principal = st.container()
 
         with col_principal:
             st.markdown("### Panel de la Agenda e Historial Clínico")
             
-            # --- BOTONES INTERACTIVOS CON EFECTO ALTERNADOR (ANIMACIÓN EN REVERSA) ---
             c_btn1, c_btn2, _ = st.columns([1, 1, 2])
             with c_btn1:
                 if st.button("➕ Nuevo Expediente", use_container_width=True):
-                    if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.session_state.side_peek_modo = None  # Cierre inverso
-                    else:
-                        st.session_state.side_peek_modo = "NUEVO_EXPEDIENTE"
+                    st.session_state.side_peek_modo = "NUEVO_EXPEDIENTE" if st.session_state.side_peek_modo != "NUEVO_EXPEDIENTE" else None
                     st.rerun()
             with c_btn2:
                 if st.button("📅 Agendar Nueva Cita", use_container_width=True):
-                    if st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.session_state.side_peek_modo = None  # Cierre inverso
-                    else:
-                        st.session_state.side_peek_modo = "NUEVA_CITA"
+                    st.session_state.side_peek_modo = "NUEVA_CITA" if st.session_state.side_peek_modo != "NUEVA_CITA" else None
                     st.rerun()
 
             st.markdown("---")
 
-            # --- TABLILLA DE CITAS PROGRAMADAS ESTILO NOTION ---
+            # --- TABLILLA DE CITAS PROGRAMADAS ---
             st.markdown("#### 📄 Citas Programadas")
-            
             conn = conectar_db_local()
             citas_tabla = pd.read_sql_query("""
                 SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
@@ -299,27 +275,17 @@ else:
                 """, unsafe_allow_html=True)
 
                 for _, fila in citas_tabla.iterrows():
-                    est = fila['estado']
-                    badge_class = "badge-progress"
-                    if est == "Realizada": badge_class = "badge-done"
-                    elif est == "Cancelada": badge_class = "badge-canceled"
-                    elif est == "No Asistió": badge_class = "badge-empty"
-
                     c_fila1, c_fila2, c_fila3, c_fila4 = st.columns([2, 1.5, 1, 1])
                     with c_fila1:
                         st.markdown(f"<div style='padding-top:6px; font-size:14px;'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
                     with c_fila2:
                         st.markdown(f"<div style='padding-top:6px; font-size:14px; color:#5a5d56;'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
                     with c_fila3:
-                        st.markdown(f"<div style='padding-top:6px;'><span class='badge-notion {badge_class}'>{est}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top:6px;'><span class='badge-notion badge-progress'>{fila['estado']}</span></div>", unsafe_allow_html=True)
                     with c_fila4:
                         if st.button("📄 Abrir", key=f"open_t_{fila['id']}", use_container_width=True):
-                            if st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id == fila['id']:
-                                st.session_state.side_peek_modo = None
-                                st.session_state.cita_seleccionada_id = None
-                            else:
-                                st.session_state.side_peek_modo = "VER_CITA"
-                                st.session_state.cita_seleccionada_id = fila['id']
+                            st.session_state.side_peek_modo = "VER_CITA"
+                            st.session_state.cita_seleccionada_id = fila['id']
                             st.rerun()
             else:
                 st.info("No hay registros de consultas en la base de datos.")
@@ -360,87 +326,64 @@ else:
                             if f_dia.month == mes_sel:
                                 st.markdown(f"<span style='color:#6a6a65; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
                                 f_buscar = f_dia.strftime("%Y-%m-%d")
-                                
                                 if f_buscar in diccionario_citas_mes:
                                     for cita_dia in diccionario_citas_mes[f_buscar]:
                                         hora_c = cita_dia['fecha_hora'][11:16]
                                         if st.button(f"⏱️ {hora_c}\n{cita_dia['nombre'][:12]}...", key=f"cal_btn_{cita_dia['id']}", use_container_width=True):
-                                            if st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id == cita_dia['id']:
-                                                st.session_state.side_peek_modo = None
-                                                st.session_state.cita_seleccionada_id = None
-                                            else:
-                                                st.session_state.side_peek_modo = "VER_CITA"
-                                                st.session_state.cita_seleccionada_id = cita_dia['id']
+                                            st.session_state.side_peek_modo = "VER_CITA"
+                                            st.session_state.cita_seleccionada_id = cita_dia['id']
                                             st.rerun()
-                            else:
-                                st.write("")
                     st.markdown("<hr style='margin:4px 0; border-top:1px solid #f1f1ef;'>", unsafe_allow_html=True)
 
-            else:
-                inicio_semana = fecha_pivote - timedelta(days=fecha_pivote.weekday())
-                dias_laborales = [inicio_semana + timedelta(days=i) for i in range(5)]
-                columnas_laborales = [d.strftime('%A (%d/%m)') for d in dias_laborales]
-                
-                horas_bloque = [f"{str(h).zfill(2)}:00" for h in range(8, 18)]
-                matriz_semana = pd.DataFrame(index=horas_bloque, columns=columnas_laborales).fillna("")
-                
-                for _, c_act in citas_tabla.iterrows():
-                    try:
-                        dt_c = datetime.strptime(c_act['fecha_hora'], "%Y-%m-%d %H:%M:%S")
-                        if dt_c.date() in dias_laborales:
-                            col_idx = dias_laborales.index(dt_c.date())
-                            h_str = dt_c.strftime("%H:00")
-                            if h_str in matriz_semana.index:
-                                matriz_semana.at[h_str, columnas_laborales[col_idx]] = f"📄 {c_act['nombre']} ({c_act['estado']})"
-                    except: pass
-                
-                st.caption("Horario institucional coordinado de Lunes a Viernes.")
-                st.dataframe(matriz_semana, use_container_width=True)
-
         # =================================================================================
-        # CAPA SUPERPUESTA REAL (SIDE PEEK FLOTANTE CON DESPLAZAMIENTO VERTICAL INTEGRADO)
+        # RENDERIZADO DE LA VENTANA EMERGENTE (SIDE PEEK) SUPERPUESTA
         # =================================================================================
         if st.session_state.side_peek_modo:
-            # Botón invisible/transparente de fondo que actúa como "clic afuera" para minimizar
+            # 1. Capa invisible trasera para capturar clics afuera
             st.markdown('<div class="side-peek-overlay"></div>', unsafe_allow_html=True)
             
-            # Contenedor flotante que rompe el flujo y se superpone a todo a la derecha
+            # 2. Contenedor Flotante Side Peek
             st.markdown('<div class="side-peek-floating">', unsafe_allow_html=True)
             
-            # Fila superior de controles de la ventana
-            c_cierre1, c_cierre2 = st.columns([2.5, 1.5])
-            with c_cierre1:
-                st.caption("Página de Costado Flotante")
-            with c_cierre2:
-                if st.button("➡️ Cerrar", key="btn_cerrar_side_peek", use_container_width=True):
+            # 3. Encabezado del Side Peek con el nuevo botón Notion deslizante de doble flecha
+            col_head_btn, col_head_space = st.columns([1, 4])
+            with col_head_btn:
+                st.markdown('<div class="notion-close-trigger">', unsafe_allow_html=True)
+                # Al pulsar las flechas de colapsar, reseteamos el estado para minimizar la ventana
+                if st.button("»", key="close_side_peek_notion_style", help="Cerrar vista lateral"):
                     st.session_state.side_peek_modo = None
                     st.session_state.cita_seleccionada_id = None
                     st.rerun()
-            st.markdown("---")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
 
-            # --- MODO A: CREAR NUEVO EXPEDIENTE CLINICO ---
+            # --- CASO A: FORMULARIO LARGO PARA NUEVO EXPEDIENTE ---
             if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                 st.markdown("### 📄 Abrir Nuevo Expediente Clínico")
-                st.caption("Rellene los datos. Deslice hacia abajo si requiere ver más campos.")
+                st.caption("Complete todos los campos del alumno universitario.")
                 
                 exp_nom = st.text_input("Nombre Completo del Alumno:", key="f_exp_nom")
                 exp_mat = st.text_input("Matrícula Institucional Única:", key="f_exp_mat")
                 
-                exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20, key="f_exp_edad")
-                exp_gen = st.selectbox("Género Biológico:", ["Masculino", "Femenino", "No Especificado"], key="f_exp_gen")
+                c_form_1, c_form_2 = st.columns(2)
+                with c_form_1:
+                    exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20, key="f_exp_edad")
+                with c_form_2:
+                    exp_gen = st.selectbox("Género Biológico:", ["Masculino", "Femenino", "Otro"], key="f_exp_gen")
                 
                 exp_div = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()), key="f_exp_div")
                 exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div], key="f_exp_car")
-                
                 exp_sem = st.selectbox("Semestre Activo:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="f_exp_sem")
+                
                 exp_tel = st.text_input("Teléfono Móvil:", key="f_exp_tel")
                 exp_cor = st.text_input("Correo Institucional:", key="f_exp_cor")
-                exp_tag = st.text_input("Diagnóstico (Etiquetas por comas):", key="f_exp_tag")
+                exp_tag = st.text_input("Diagnóstico (Etiquetas separadas por comas):", key="f_exp_tag")
                 
-                # Nombre de columna correcto de acuerdo al mapeo clínico
-                exp_obs = st.text_area("Motivo de Consulta:", height=140, key="f_exp_obs")
+                # Mapeado a la columna motivo_consulta corregida
+                exp_obs = st.text_area("Motivo de Consulta:", height=120, key="f_exp_obs")
                 
-                st.markdown('<div class="btn-principal">', unsafe_allow_html=True)
+                st.markdown("---")
                 if st.button("Guardar Registro de Expediente", use_container_width=True, key="btn_guardar_exp_final"):
                     if exp_mat.strip() and exp_nom.strip():
                         conn = conectar_db_local()
@@ -451,49 +394,16 @@ else:
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
                             conn.commit()
-                            st.success("Expediente guardado con éxito.")
+                            st.success("¡Expediente creado con éxito!")
                             st.session_state.side_peek_modo = None
                             st.rerun()
                         except sqlite3.IntegrityError:
-                            st.error("La matrícula ya existe.")
+                            st.error("Error: La matrícula ingresada ya se encuentra registrada.")
                         finally: conn.close()
-                    else: st.warning("Nombre y Matrícula son requeridos.")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # --- MODO B: AGENDAR NUEVA CITA ---
-            elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                st.markdown("### 📅 Programar Consulta")
-                
-                b_mat_c = st.text_input("Buscar Matrícula del Alumno:", key="f_cita_bus_mat")
-                if b_mat_c.strip():
-                    conn = conectar_db_local()
-                    res_paciente = conn.cursor().execute("SELECT id, nombre, carrera FROM expedientes WHERE matricula = ?", (b_mat_c.strip(),)).fetchone()
-                    conn.close()
-                    
-                    if res_paciente:
-                        st.info(f"Paciente: {res_paciente[1]}")
-                        c_fecha = st.date_input("Fecha Programada:", key="f_cita_date")
-                        c_hora = st.time_input("Hora Programada:", key="f_cita_time")
-                        c_motivo = st.text_area("Motivo Clínico de Consulta:", height=120, key="f_cita_motivo")
-                        
-                        st.markdown('<div class="btn-principal">', unsafe_allow_html=True)
-                        if st.button("Confirmar y Agendar Cita", use_container_width=True, key="btn_guardar_cita_final"):
-                            f_iso = datetime.combine(c_fecha, c_hora).strftime("%Y-%m-%d %H:%M:%S")
-                            conn = conectar_db_local()
-                            conn.cursor().execute("""
-                                INSERT INTO citas (expediente_id, fecha_hora, estado, motivo, notas_evolucion)
-                                VALUES (?, ?, 'Pendiente', ?, '')
-                            """, (res_paciente[0], f_iso, c_motivo))
-                            conn.commit()
-                            conn.close()
-                            st.success("Cita agendada.")
-                            st.session_state.side_peek_modo = None
-                            st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
                     else:
-                        st.error("Matrícula no encontrada.")
+                        st.warning("El Nombre y la Matrícula son campos requeridos.")
 
-            # --- MODO C: VER / EDITAR CITA EXISTENTE ---
+            # --- CASO B: VER / EDITAR DETALLES DE CITA ---
             elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                 conn = conectar_db_local()
                 datos_cita = conn.cursor().execute("""
@@ -504,37 +414,32 @@ else:
 
                 if datos_cita:
                     st.markdown(f"## {datos_cita[1]}")
-                    st.caption(f"Matrícula: {datos_cita[8]}")
+                    st.caption(f"Matrícula del Estudiante: {datos_cita[8]}")
                     st.markdown("---")
                     
                     peek_estado = st.selectbox("Estado de Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]), key="f_ver_estado")
                     peek_fecha = st.text_input("Fecha y Hora Asignada:", value=datos_cita[2], disabled=True, key="f_ver_fecha")
-                    peek_motivo = st.text_area("Motivo de la Ficha:", value=datos_cita[4], disabled=True, key="f_ver_motivo")
+                    peek_motivo = st.text_area("Motivo Clínico registrado:", value=datos_cita[4], disabled=True, key="f_ver_motivo")
                     peek_notas = st.text_area("Notas Clínicas y Evolución:", value=datos_cita[5], height=150, key="f_ver_notas")
-                    peek_tags = st.text_input("Modificar Etiquetas:", value=datos_cita[6], key="f_ver_tags")
+                    peek_tags = st.text_input("Modificar Etiquetas de Diagnóstico:", value=datos_cita[6], key="f_ver_tags")
 
-                    st.markdown('<div class="btn-principal">', unsafe_allow_html=True)
-                    if st.button("Guardar Cambios Clínicos", use_container_width=True, key="btn_actualizar_cita_final"):
+                    if st.button("Sincronizar Cambios Clínicos", use_container_width=True, key="btn_actualizar_cita_final"):
                         conn = conectar_db_local()
                         cursor = conn.cursor()
                         cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                         cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                         conn.commit()
                         conn.close()
-                        st.success("Sincronizado.")
+                        st.success("Base de datos actualizada correctamente.")
                         st.session_state.side_peek_modo = None
                         st.session_state.cita_seleccionada_id = None
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Cierre del Div flotante
+
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # =================================================================================
-    # RESTO DE MÓDULOS DE GESTIÓN (MANTIENEN LA ESTRUCTURA)
-    # =================================================================================
+    # --- RESTO DE LOS MÓDULOS DEL CONSULTORIO ---
     elif seccion == "📋 Expedientes Electrónicos":
-        st.markdown("<h3>Repositorio General de Expedientes Clínicos</h3>")
+        st.markdown("<h3>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)
         bus_nom = st.text_input("🔍 Buscar Alumno por Nombre o Matrícula:")
         conn = conectar_db_local()
         query = "SELECT matricula, nombre, genero, edad, division, carrera, semestre, etiquetas, observaciones FROM expedientes WHERE 1=1"
@@ -547,17 +452,8 @@ else:
         st.dataframe(df_exp, use_container_width=True)
 
     elif seccion == "📅 Agenda de Citas":
-        st.markdown("<h3>Control de Citas Clínicas e Historial de Sesiones</h3>")
-        st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar de forma superpuesta la ventana lateral sin obstrucciones.")
+        st.markdown("<h3>Control de Citas Clínicas e Historial de Sesiones</h3>", unsafe_allow_html=True)
+        st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar la ventana lateral interactiva.")
 
     elif seccion == "📊 Reportes Ejecutivos":
-        st.markdown("<h3>Panel de Métricas y Estadísticas Multidimensionales</h3>")
-        conn = conectar_db_local()
-        df_completo = pd.read_sql_query("SELECT * FROM expedientes", conn)
-        conn.close()
-        
-        if not df_completo.empty:
-            c_m1, c_m2, c_m3 = st.columns(3)
-            with c_m1: st.metric("Expedientes Abiertos", len(df_completo))
-            with c_m2: st.metric("Divisiones Atendidas", len(df_completo['division'].unique()))
-            with c_m3: st.metric("Licenciaturas Cubiertas", len(df_completo['carrera'].unique()))
+        st.markdown("<h3>Panel de Métricas y Estadísticas Multidimensionales</h3>", unsafe_allow_html=True)

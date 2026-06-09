@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inyección de CSS para emular la tipografía limpia de Notion
+# Inyección de CSS para emular la tipografía de Notion y el estilo de la app
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -23,14 +23,6 @@ st.markdown("""
         }
         .main {
             background-color: #f8fafc;
-        }
-        .notion-card {
-            background: #ffffff;
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
         }
         .cal-header {
             font-weight: 600;
@@ -68,7 +60,7 @@ def inicializar_base_datos():
     conn = conectar_db()
     cursor = conn.cursor()
     
-    # Tabla de Expedientes (Con la columna corregida 'motivo_consulta')
+    # Tabla de Expedientes
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS expedientes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,7 +111,7 @@ if "fecha_navegacion_cal" not in st.session_state:
     st.session_state.fecha_navegacion_cal = datetime.today().date()
 
 # ==============================================================================
-# 4. BARRA LATERAL
+# 4. BARRA LATERAL (Módulos de Gestión Fijos)
 # ==============================================================================
 with st.sidebar:
     st.markdown("### 🗂️ Módulos de Gestión")
@@ -133,31 +125,32 @@ with st.sidebar:
     st.markdown("### 👤 Personal Encargado:")
     st.caption("psicologa.sara")
 
+# Obtenemos los datos globales de citas para el planner y calendario
+conn = conectar_db()
+df_todas_citas = pd.read_sql_query("""
+    SELECT c.id as [ID Cita], e.nombre as [Paciente], e.matricula as [Matrícula], 
+           c.fecha_hora as [Fecha y Hora], c.estado as [Estado], c.motivo as [Motivo], 
+           c.notas_evolucion as [Notas de Evolución]
+    FROM citas c JOIN expedientes e ON c.expediente_id = e.id
+    ORDER BY c.fecha_hora ASC
+""", conn)
+conn.close()
+
+if not df_todas_citas.empty:
+    df_todas_citas['datetime_obj'] = pd.to_datetime(df_todas_citas['Fecha y Hora'])
+    df_todas_citas['fecha_solo'] = df_todas_citas['datetime_obj'].dt.date
+    df_todas_citas['hora_solo'] = df_todas_citas['datetime_obj'].dt.strftime('%H:%M')
+
 # ==============================================================================
-# MÓDULO 1: INICIO Y PLANNER (RESTAURADO CON CONTROLES DESPLEGABLES COMPLETOS)
+# MÓDULO 1: INICIO Y PLANNER (DISEÑO ORIGINAL RESTAURADO CON CALENDARIO ABAJO)
 # ==============================================================================
 if st.session_state.menu_actual == "🏠 Inicio y Planner":
     st.title("🏫 Consultorio Psicológico DACYTI")
     st.subheader("Panel General de Control Clínico")
     
-    # Consultas para Métricas de la Pantalla de Inicio
-    conn = conectar_db()
-    total_exp = pd.read_sql_query("SELECT COUNT(*) as total FROM expedientes", conn)['total'][0]
-    citas_pen = pd.read_sql_query("SELECT COUNT(*) as total FROM citas WHERE estado='Pendiente'", conn)['total'][0]
-    citas_com = pd.read_sql_query("SELECT COUNT(*) as total FROM citas WHERE estado='Completada'", conn)['total'][0]
-    conn.close()
-    
-    col_inf1, col_inf2, col_inf3 = st.columns(3)
-    with col_inf1:
-        st.metric(label="Expedientes Totales", value=int(total_exp))
-    with col_inf2:
-        st.metric(label="Sesiones Pendientes", value=int(citas_pen))
-    with col_inf3:
-        st.metric(label="Sesiones Concluidas", value=int(citas_com))
-
     st.markdown("---")
     
-    # Botones superiores de la pantalla de inicio para desplegar formularios avanzados
+    # Botones principales superiores de la pantalla de inicio
     col_btn1, col_btn2, _ = st.columns([1, 1, 2])
     with col_btn1:
         if st.button("📝 Abrir Nuevo Expediente", use_container_width=True):
@@ -168,9 +161,7 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
             st.session_state.mostrar_nueva_agenda = not st.session_state.mostrar_nueva_agenda
             st.session_state.mostrar_nuevo_expediente = False
 
-    # --------------------------------------------------------------------------
-    # DESPLEGABLE INTERACTIVO: ABRIR NUEVO EXPEDIENTE (Estructura Fiel)
-    # --------------------------------------------------------------------------
+    # Desplegable: Abrir Nuevo Expediente
     if st.session_state.mostrar_nuevo_expediente:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container():
@@ -181,7 +172,7 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
             with col_ret_exp:
                 if st.button("Retraer >>", key="btn_retraer_exp", use_container_width=True):
                     st.session_state.mostrar_nuevo_expediente = False
-                    st.st.rerun()
+                    st.rerun()
             
             st.markdown("#### 🏛️ Ubicación Académica")
             div_aca = st.selectbox("División Académica:", ["DACYTI", "DAIA", "DACEA", "DAMJS"], key="inc_div_aca")
@@ -212,7 +203,7 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
             
             if st.button("Guardar Expediente Completo", key="btn_guardar_exp_inc"):
                 if not nom_completo or not mat_institucional:
-                    st.error("❌ Los campos Nombre y Matrícula son completamente obligatorios.")
+                    st.error("❌ Los campos Nombre y Matrícula son obligatorios.")
                 else:
                     try:
                         conn = conectar_db()
@@ -223,22 +214,20 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
                         """, (mat_institucional.strip().upper(), nom_completo.strip(), gen_alumno, int(edad_alumno), div_aca, carrera_sel, sem_alumno, tel_contacto.strip(), corr_electronico.strip(), tags_diag.strip(), mot_consulta.strip()))
                         conn.commit()
                         conn.close()
-                        st.success("✅ El expediente se ha registrado con éxito en la base de datos.")
+                        st.success("✅ El expediente se ha registrado con éxito.")
                         st.session_state.mostrar_nuevo_expediente = False
                         st.rerun()
                     except sqlite3.IntegrityError:
-                        st.error("❌ Conflicto: Esta matrícula ya se encuentra registrada en el sistema.")
+                        st.error("❌ Conflicto: Esta matrícula ya se encuentra registrada.")
 
-    # --------------------------------------------------------------------------
-    # DESPLEGABLE INTERACTIVO: NUEVA AGENDA (Estructura Fiel)
-    # --------------------------------------------------------------------------
+    # Desplegable: Nueva Agenda
     if st.session_state.mostrar_nueva_agenda:
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container():
             col_tit_age, col_ret_age = st.columns([3, 1])
             with col_tit_age:
                 st.markdown("### 📅 Nueva Agenda")
-                st.caption("Complete los datos del alumno institucional para su cita.")
+                st.caption("Complete los datos para agendar la sesión.")
             with col_ret_age:
                 if st.button("Retraer >>", key="btn_retraer_age", use_container_width=True):
                     st.session_state.mostrar_nueva_agenda = False
@@ -276,25 +265,118 @@ if st.session_state.menu_actual == "🏠 Inicio y Planner":
                     st.session_state.mostrar_nueva_agenda = False
                     st.rerun()
 
-    # Sección inferior fija: Citas prioritarias
-    st.markdown("---")
-    st.subheader("📌 Próximas Citas Prioritarias (Hoy/Próximas)")
+    # --------------------------------------------------------------------------
+    # SECCIÓN DE CITAS PROGRAMADAS (Fiel a image_0b8f3a.png / image_0c1d25.png)
+    # --------------------------------------------------------------------------
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📄 Citas Programadas")
     
-    conn = conectar_db()
-    df_hoy = pd.read_sql_query("""
-        SELECT e.nombre as Paciente, c.fecha_hora as [Fecha/Hora], c.estado as Estado, c.motivo as Motivo
-        FROM citas c JOIN expedientes e ON c.expediente_id = e.id
-        WHERE c.estado = 'Pendiente' ORDER BY c.fecha_hora ASC LIMIT 5
-    """, conn)
-    conn.close()
-    
-    if df_hoy.empty:
-        st.info("No hay citas pendientes prioritarias en la agenda.")
+    if df_todas_citas.empty:
+        st.info("No se encuentran registros de citas programadas en la base de datos.")
     else:
-        st.dataframe(df_hoy, use_container_width=True)
+        # Mostramos las citas pendientes principales en el planner
+        df_pendientes = df_todas_citas[df_todas_citas['Estado'] == 'Pendiente'].head(5)
+        if df_pendientes.empty:
+            st.info("No hay citas pendientes prioritarias en la agenda.")
+        else:
+            # Renderizado limpio en formato tabla informativa
+            st.dataframe(
+                df_pendientes[['Paciente', 'Fecha y Hora', 'Estado', 'Motivo']], 
+                use_container_width=True
+            )
+
+    # --------------------------------------------------------------------------
+    # SECCIÓN: VISUALIZADOR DE CALENDARIO CLÍNICO ABAJO (Fiel a image_0c1d25.png)
+    # --------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("🗓️ Visualizador de Calendario Clínico")
+    
+    col_view1, col_view2 = st.columns([2, 3])
+    with col_view1:
+        rango_tiempo = st.selectbox("Formato Ajustado:", ["Diario", "Semanal", "Mensual (Carga General)", "Anual (Lista)"], index=2, key="cal_rango_view")
+    with col_view2:
+        st.session_state.fecha_navegacion_cal = st.date_input("Fecha Base Enfoque:", st.session_state.fecha_navegacion_cal, key="cal_fecha_enfoque")
+        
+    color_status = {"Pendiente": "#2e5bff", "Completada": "#2ecc71", "Cancelada": "#e74c3c"}
+    
+    if df_todas_citas.empty:
+        st.info("Sin registros clínicos para segmentar en formato calendario.")
+    else:
+        # --- FORMATO DIARIO ---
+        if rango_tiempo == "Diario":
+            st.markdown(f"#### 🎯 Citas del Día: {st.session_state.fecha_navegacion_cal.strftime('%d/%m/%Y')}")
+            df_dia = df_todas_citas[df_todas_citas['fecha_solo'] == st.session_state.fecha_navegacion_cal].sort_values(by='hora_solo')
+            if df_dia.empty:
+                st.caption("No existen citas programadas para este día.")
+            else:
+                for _, row in df_dia.iterrows():
+                    bg = color_status.get(row['Estado'], '#718096')
+                    st.markdown(f"""
+                        <div style='background-color:{bg}; padding:12px; border-radius:8px; color:white; margin-bottom:10px;'>
+                            <strong>⏱️ {row['hora_solo']} hrs</strong> - {row['Paciente']} ({row['Matrícula']}) <br>
+                            <small>Motivo: {row['Motivo']} | Estado: {row['Estado']}</small>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+        # --- FORMATO SEMANAL ---
+        elif rango_tiempo == "Semanal":
+            ini_sem = st.session_state.fecha_navegacion_cal - timedelta(days=st.session_state.fecha_navegacion_cal.weekday())
+            st.markdown(f"#### 📅 Periodo Semanal: {ini_sem.strftime('%d/%m/%Y')} al {(ini_sem + timedelta(days=6)).strftime('%d/%m/%Y')}")
+            
+            cols_semanales = st.columns(7)
+            dias_nom = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            
+            for i in range(7):
+                dia_eval = ini_sem + timedelta(days=i)
+                with cols_semanales[i]:
+                    st.markdown(f"<div class='cal-header'>{dias_nom[i]} {dia_eval.day}</div>", unsafe_allow_html=True)
+                    df_sem_dia = df_todas_citas[df_todas_citas['fecha_solo'] == dia_eval]
+                    for _, row in df_sem_dia.iterrows():
+                        bg = color_status.get(row['Estado'], '#718096')
+                        st.markdown(f"<div class='cal-event-card' style='background-color:{bg};'>⏱️ {row['hora_solo']}<br>{row['Paciente'][:12]}...</div>", unsafe_allow_html=True)
+
+        # --- FORMATO MENSUAL ---
+        elif rango_tiempo == "Mensual (Carga General)":
+            aa, mm = st.session_state.fecha_navegacion_cal.year, st.session_state.fecha_navegacion_cal.month
+            st.markdown(f"#### 🗓️ Vista Mensual: {st.session_state.fecha_navegacion_cal.strftime('%B %Y').upper()}")
+            
+            prim_dia = datetime(aa, mm, 1)
+            offset = prim_dia.weekday()
+            tot_dias = (datetime(aa, mm + 1, 1) - prim_dia).days if mm < 12 else 31
+            
+            headers_mes = st.columns(7)
+            dias_abreviados = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+            for idx, h in enumerate(dias_abreviados):
+                headers_mes[idx].markdown(f"<div class='cal-header'>{h}</div>", unsafe_allow_html=True)
+                
+            celdas = [None] * offset + [prim_dia.date() + timedelta(days=i) for i in range(tot_dias)]
+            while len(celdas) % 7 != 0:
+                celdas.append(None)
+                
+            for fila in range(len(celdas) // 7):
+                cols_mes_render = st.columns(7)
+                for c_idx in range(7):
+                    celda_fecha = celdas[fila * 7 + c_idx]
+                    if celda_fecha:
+                        with cols_mes_render[c_idx]:
+                            st.markdown(f"**{celda_fecha.day}**")
+                            df_mes_dia = df_todas_citas[df_todas_citas['fecha_solo'] == celda_fecha]
+                            for _, row in df_mes_dia.iterrows():
+                                bg = color_status.get(row['Estado'], '#718096')
+                                st.markdown(f"<div class='cal-event-card' style='background-color:{bg}; padding:2px 4px; font-size:10px;'>{row['hora_solo']} - {row['Paciente'][:8]}</div>", unsafe_allow_html=True)
+
+        # --- FORMATO ANUAL ---
+        elif rango_tiempo == "Anual (Lista)":
+            target_year = st.session_state.fecha_navegacion_cal.year
+            st.markdown(f"#### 📋 Agenda Completa Cronológica - Año {target_year}")
+            df_anio = df_todas_citas[df_todas_citas['datetime_obj'].dt.year == target_year].sort_values(by='datetime_obj')
+            if df_anio.empty:
+                st.caption("No existen registros de citas para este año.")
+            else:
+                st.dataframe(df_anio.drop(columns=['datetime_obj', 'fecha_solo', 'hora_solo']), use_container_width=True)
 
 # ==============================================================================
-# MÓDULO 2: EXPEDIENTES ELECTRÓNICOS (PANTALLA EXCELENTE DE VISUALIZACIÓN DE BD)
+# MÓDULO 2: EXPEDIENTES ELECTRÓNICOS (CON CONTADOR DE EXPEDIENTES TOTALES)
 # ==============================================================================
 elif st.session_state.menu_actual == "📄 Expedientes Electrónicos":
     st.title("📄 Expedientes Electrónicos")
@@ -311,6 +393,11 @@ elif st.session_state.menu_actual == "📄 Expedientes Electrónicos":
     """, conn)
     conn.close()
     
+    # Colocamos aquí el contador movido de la pantalla de inicio
+    total_exp = len(df_expedientes)
+    st.metric(label="🗂️ Total de Expedientes Abiertos", value=int(total_exp))
+    st.markdown("---")
+    
     if df_expedientes.empty:
         st.info("No se han localizado expedientes guardados en la Base de Datos.")
     else:
@@ -323,149 +410,56 @@ elif st.session_state.menu_actual == "📄 Expedientes Electrónicos":
         st.dataframe(df_expedientes, use_container_width=True)
 
 # ==============================================================================
-# MÓDULO 3: AGENDA DE CITAS (EXCLUSIVO CITAS: BD + CALENDARIO CRONOLÓGICO)
+# MÓDULO 3: AGENDA DE CITAS (CON CONTADORES DE SESIONES PENDIENTES Y CONCLUIDAS)
 # ==============================================================================
 elif st.session_state.menu_actual == "📅 Agenda de Citas":
     st.title("📅 Agenda de Citas")
+    st.subheader("Control de Citas Clínicas e Historial de Sesiones")
     
-    cit_tab1, cit_tab2 = st.tabs(["🗃️ Base de Datos de Citas", "📅 Segmentación Cronológica en Calendario"])
-    
-    conn = conectar_db()
-    df_citas = pd.read_sql_query("""
-        SELECT c.id as [ID Cita], e.nombre as [Paciente], e.matricula as [Matrícula], 
-               c.fecha_hora as [Fecha y Hora], c.estado as [Estado], c.motivo as [Motivo], 
-               c.notas_evolucion as [Notas de Evolución]
-        FROM citas c JOIN expedientes e ON c.expediente_id = e.id
-        ORDER BY c.fecha_hora DESC
-    """, conn)
-    conn.close()
-    
-    if not df_citas.empty:
-        df_citas['datetime_obj'] = pd.to_datetime(df_citas['Fecha y Hora'])
-        df_citas['fecha_solo'] = df_citas['datetime_obj'].dt.date
-        df_citas['hora_solo'] = df_citas['datetime_obj'].dt.strftime('%H:%M')
-
-    # --- TAB 1: BASE DE DATOS DE TODAS LAS CITAS ---
-    with cit_tab1:
-        st.subheader("📁 Registro Completo e Historial de Citas")
-        if df_citas.empty:
-            st.info("No hay citas registradas en el sistema.")
-        else:
-            st.dataframe(df_citas.drop(columns=['datetime_obj', 'fecha_solo', 'hora_solo'], errors='ignore'), use_container_width=True)
-
-    # --- TAB 2: SECCIONAR DE FORMA CRONOLÓGICA (FORMATO CALENDARIO) ---
-    with cit_tab2:
-        st.subheader("🗓️ Visualizador de Calendario Clínico")
+    # Calculamos y colocamos aquí los contadores movidos de la pantalla de inicio
+    if not df_todas_citas.empty:
+        citas_pen = len(df_todas_citas[df_todas_citas['Estado'] == 'Pendiente'])
+        citas_com = len(df_todas_citas[df_todas_citas['Estado'] == 'Completada'])
+    else:
+        citas_pen, citas_com = 0, 0
         
-        col_view1, col_view2 = st.columns([2, 3])
-        with col_view1:
-            rango_tiempo = st.selectbox("Formato Ajustado:", ["Diario", "Semanal", "Mensual (Carga General)", "Anual (Lista)"], index=2, key="cal_rango_view")
-        with col_view2:
-            st.session_state.fecha_navegacion_cal = st.date_input("Fecha Base Enfoque:", st.session_state.fecha_navegacion_cal, key="cal_fecha_enfoque")
-            
-        color_status = {"Pendiente": "#2e5bff", "Completada": "#2ecc71", "Cancelada": "#e74c3c"}
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        st.metric(label="⏳ Sesiones Pendientes por Atender", value=int(citas_pen))
+    with col_c2:
+        st.metric(label="✅ Sesiones Concluidas / Exitosas", value=int(citas_com))
         
-        if df_citas.empty:
-            st.info("Sin registros clínicos para segmentar en formato calendario.")
-        else:
-            # --- FORMATO DIARIO ---
-            if rango_tiempo == "Diario":
-                st.markdown(f"#### 🎯 Citas del Día: {st.session_state.fecha_navegacion_cal.strftime('%d/%m/%Y')}")
-                df_dia = df_citas[df_citas['fecha_solo'] == st.session_state.fecha_navegacion_cal].sort_values(by='hora_solo')
-                if df_dia.empty:
-                    st.caption("No existen citas programadas para este día.")
-                else:
-                    for _, row in df_dia.iterrows():
-                        bg = color_status.get(row['Estado'], '#718096')
-                        st.markdown(f"""
-                            <div style='background-color:{bg}; padding:12px; border-radius:8px; color:white; margin-bottom:10px;'>
-                                <strong>⏱️ {row['hora_solo']} hrs</strong> - {row['Paciente']} ({row['Matrícula']}) <br>
-                                <small>Motivo: {row['Motivo']} | Estado: {row['Estado']}</small>
-                            </div>
-                        """, unsafe_allow_html=True)
-
-            # --- FORMATO SEMANAL ---
-            elif rango_tiempo == "Semanal":
-                ini_sem = st.session_state.fecha_navegacion_cal - timedelta(days=st.session_state.fecha_navegacion_cal.weekday())
-                st.markdown(f"#### 📅 Periodo Semanal: {ini_sem.strftime('%d/%m/%Y')} al {(ini_sem + timedelta(days=6)).strftime('%d/%m/%Y')}")
-                
-                cols_semanales = st.columns(7)
-                dias_nom = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-                
-                for i in range(7):
-                    dia_eval = ini_sem + timedelta(days=i)
-                    with cols_semanales[i]:
-                        st.markdown(f"<div class='cal-header'>{dias_nom[i]} {dia_eval.day}</div>", unsafe_allow_html=True)
-                        df_sem_dia = df_citas[df_citas['fecha_solo'] == dia_eval]
-                        for _, row in df_sem_dia.iterrows():
-                            bg = color_status.get(row['Estado'], '#718096')
-                            st.markdown(f"<div class='cal-event-card' style='background-color:{bg};'>⏱️ {row['hora_solo']}<br>{row['Paciente'][:12]}...</div>", unsafe_allow_html=True)
-
-            # --- FORMATO MENSUAL ---
-            elif rango_tiempo == "Mensual (Carga General)":
-                aa, mm = st.session_state.fecha_navegacion_cal.year, st.session_state.fecha_navegacion_cal.month
-                st.markdown(f"#### 🗓️ Vista Mensual: {st.session_state.fecha_navegacion_cal.strftime('%B %Y').upper()}")
-                
-                prim_dia = datetime(aa, mm, 1)
-                offset = prim_dia.weekday()
-                tot_dias = (datetime(aa, mm + 1, 1) - prim_dia).days if mm < 12 else 31
-                
-                headers_mes = st.columns(7)
-                dias_abreviados = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
-                for idx, h in enumerate(dias_abreviados):
-                    headers_mes[idx].markdown(f"<div class='cal-header'>{h}</div>", unsafe_allow_html=True)
-                    
-                celdas = [None] * offset + [prim_dia.date() + timedelta(days=i) for i in range(tot_dias)]
-                while len(celdas) % 7 != 0:
-                    celdas.append(None)
-                    
-                for fila in range(len(celdas) // 7):
-                    cols_mes_render = st.columns(7)
-                    for c_idx in range(7):
-                        celda_fecha = celdas[fila * 7 + c_idx]
-                        if celda_fecha:
-                            with cols_mes_render[c_idx]:
-                                st.markdown(f"**{celda_fecha.day}**")
-                                df_mes_dia = df_citas[df_citas['fecha_solo'] == celda_fecha]
-                                for _, row in df_mes_dia.iterrows():
-                                    bg = color_status.get(row['Estado'], '#718096')
-                                    st.markdown(f"<div class='cal-event-card' style='background-color:{bg}; padding:2px 4px; font-size:10px;'>{row['hora_solo']} - {row['Paciente'][:8]}</div>", unsafe_allow_html=True)
-
-            # --- FORMATO ANUAL ---
-            elif rango_tiempo == "Anual (Lista)":
-                target_year = st.session_state.fecha_navegacion_cal.year
-                st.markdown(f"#### 📋 Agenda Completa Cronológica - Año {target_year}")
-                df_anio = df_citas[df_citas['datetime_obj'].dt.year == target_year].sort_values(by='datetime_obj')
-                if df_anio.empty:
-                    st.caption("No existen registros de citas para este año.")
-                else:
-                    st.dataframe(df_anio.drop(columns=['datetime_obj', 'fecha_solo', 'hora_solo']), use_container_width=True)
-
-        # Gestión rápida externa para cambiar estados o guardar evolución clínica
-        if not df_citas.empty:
-            st.markdown("---")
-            st.subheader("⚙️ Actualización Rápida de Historial Clínico")
-            
-            mapeo_edicion = {f"Cita ID {r['ID Cita']} - Paciente: {r['Paciente']} ({r['Fecha y Hora']})": r['ID Cita'] for _, r in df_citas.iterrows()}
-            seleccion_c = st.selectbox("Seleccione la consulta a modificar:", list(mapeo_edicion.keys()), key="select_edicion_cita")
-            
-            id_c_sel = mapeo_edicion[seleccion_c]
-            info_actual_cita = df_citas[df_citas['ID Cita'] == id_c_sel].iloc[0]
-            
-            col_u1, col_u2 = st.columns(2)
-            with col_u1:
-                nuevo_st = st.selectbox("Estatus Clínico:", ["Pendiente", "Completada", "Cancelada"], index=["Pendiente", "Completada", "Cancelada"].index(info_actual_cita['Estado']), key=f"est_ut_{id_c_sel}")
-            with col_u2:
-                nuevas_notas = st.text_area("Notas de Evolución:", value=info_actual_cita['Notas de Evolución'] if info_actual_cita['Notas de Evolución'] else "", key=f"not_ut_{id_c_sel}")
-            
-            if st.button("Guardar Cambios en Registro", key=f"btn_save_ut_{id_c_sel}"):
-                conn = conectar_db()
-                cursor = conn.cursor()
-                cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (nuevo_st, nuevas_notas.strip(), int(id_c_sel)))
-                conn.commit()
-                conn.close()
-                st.success("✅ Historial clínico guardado correctamente.")
-                st.rerun()
+    st.markdown("---")
+    
+    if df_todas_citas.empty:
+        st.info("No hay citas registradas en la agenda actualmente.")
+    else:
+        st.dataframe(df_todas_citas.drop(columns=['datetime_obj', 'fecha_solo', 'hora_solo'], errors='ignore'), use_container_width=True)
+        
+        # Panel de actualización rápida de estatus clínico e historial clínico
+        st.markdown("---")
+        st.subheader("⚙️ Actualización Rápida de Historial Clínico")
+        
+        mapeo_edicion = {f"Cita ID {r['ID Cita']} - Paciente: {r['Paciente']} ({r['Fecha y Hora']})": r['ID Cita'] for _, r in df_todas_citas.iterrows()}
+        seleccion_c = st.selectbox("Seleccione la consulta a modificar:", list(mapeo_edicion.keys()), key="select_edicion_cita")
+        
+        id_c_sel = mapeo_edicion[seleccion_c]
+        info_actual_cita = df_todas_citas[df_todas_citas['ID Cita'] == id_c_sel].iloc[0]
+        
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
+            nuevo_st = st.selectbox("Estatus Clínico:", ["Pendiente", "Completada", "Cancelada"], index=["Pendiente", "Completada", "Cancelada"].index(info_actual_cita['Estado']), key=f"est_ut_{id_c_sel}")
+        with col_u2:
+            nuevas_notas = st.text_area("Notas de Evolución:", value=info_actual_cita['Notas de Evolución'] if info_actual_cita['Notas de Evolución'] else "", key=f"not_ut_{id_c_sel}")
+        
+        if st.button("Guardar Cambios en Registro", key=f"btn_save_ut_{id_c_sel}"):
+            conn = conectar_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (nuevo_st, nuevas_notas.strip(), int(id_c_sel)))
+            conn.commit()
+            conn.close()
+            st.success("✅ Historial clínico guardado correctamente.")
+            st.rerun()
 
 # ==============================================================================
 # MÓDULO 4: REPORTES EJECUTIVOS

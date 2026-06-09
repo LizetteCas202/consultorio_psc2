@@ -91,52 +91,75 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - DISEÑO LIMPIO Y CONTROL DE COMPONENTES LATERALES
+# INYECCIÓN MAESTRA DE CSS - VISIBILIDAD DE TEXTOS Y FUNCIONALIDADES NATIVAS LIBERADAS
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. CONFIGURACIÓN GENERAL ENTORNO NOTION WHITE */
-    .stApp { background-color: #ffffff !important; }
+    /* 1. BLINDAJE DEL FONDO GENERAL DE LA APLICACIÓN */
+    .stApp, [data-testid="stAppViewContainer"] { 
+        background-color: #ffffff !important; 
+    }
     
+    /* 2. CONTRASTE ABSOLUTO DE TEXTOS Y TÍTULOS (EVITA EL TEXTO INVISIBLE) */
+    h1, h2, h3, h4, h5, h6, p, span, label, li {
+        color: #191919 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    }
+    
+    [data-testid="stMarkdownContainer"] h1, 
+    [data-testid="stMarkdownContainer"] h2, 
+    [data-testid="stMarkdownContainer"] h3, 
+    [data-testid="stMarkdownContainer"] h4 {
+        color: #191919 !important;
+        font-weight: 600 !important;
+    }
+    
+    .stWidgetFormLabel, [data-testid="stWidgetLabel"] p {
+        color: #2f2f2f !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+    }
+
+    /* 3. CONTENEDOR LATERAL (SIDE-PEEK) TIPO NOTION CARD */
     div[data-testid="stForm"] { 
         background-color: #fbfbfa !important; 
         border: 1px solid #e3e2e0 !important; 
-        box-shadow: none !important;
-        padding: 20px !important;
-        border-radius: 8px !important;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03) !important;
+        padding: 24px !important;
+        border-radius: 10px !important;
         margin-top: 5px !important;
     }
     
+    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
+        background-color: #ffffff !important;
+        border: 1px solid #dcdbdb !important;
+        border-radius: 6px !important;
+    }
+    
+    div[data-baseweb="input"] input, div[data-baseweb="select"] span, div[data-baseweb="textarea"] textarea {
+        color: #191919 !important;
+    }
+    
+    /* Forzar limpieza de paddings en columnas sin romper controles flotantes */
     div[data-testid="stColumn"] {
         padding: 0px !important;
         margin: 0px !important;
     }
     
-    div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
-        background-color: #fafafa !important;
-        border: 1px solid #e0e0e0 !important;
-        color: #37352f !important;
-        border-radius: 5px !important;
-    }
-    
-    /* 2. MENÚ LATERAL: CONTRASTE OPTIMIZADO PARA PRODUCCIÓN */
+    /* 4. MENÚ LATERAL IZQUIERDO (SIDEBAR) */
     [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
-        border-right: 1px solid #e9e9e8; 
+        border-right: 1px solid #e9e9e8 !important; 
     }
-    [data-testid="stSidebar"] .stRadio label p,
+    [data-testid="stSidebar"] h3,
     [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] h3 {
-        color: #37352f !important; 
+    [data-testid="stSidebar"] p {
+        color: #2f2f2f !important; 
         font-weight: 500 !important;
-        font-size: 14px !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    [data-testid="stSidebar"] h3 { font-size: 16px !important; font-weight: 600 !important; }
     
-    /* 3. CONTENEDOR ESTILIZADO DE CABECERA Y TABLAS */
+    /* 5. DISEÑO DE TABLAS E INTERFAZ PLANNER */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -145,7 +168,7 @@ st.markdown("""
         border-bottom: 1px solid #e9e9e8;
         padding-bottom: 12px;
     }
-    .constante-header-container h1 { margin: 0 !important; font-size: 22px; font-weight: 600; }
+    .constante-header-container h1 { margin: 0 !important; font-size: 22px; color: #191919 !important; }
     
     .notion-table-header {
         display: flex; 
@@ -154,28 +177,29 @@ st.markdown("""
         padding: 8px 12px; 
         border-bottom: 1px solid #e9e9e8; 
         font-size: 13px; 
-        color: #6a6a65;
+        color: #6a6a65 !important;
         margin-bottom: 8px;
     }
+    .notion-table-header div { color: #6a6a65 !important; }
     
-    /* 4. VISIBILIDAD DE FECHAS EN EL CALENDARIO */
     center small strong, .stMarkdown center, .stMarkdown center small {
-        color: #5a5a57 !important;
+        color: #37352f !important;
         font-size: 13px !important;
         font-weight: 600 !important;
     }
     
-    /* 5. BOTONES INSTITUCIONALES */
+    /* 6. BOTONES GENERALES DE ACCIÓN */
     div.stButton > button, .stButton button {
         background-color: #ffffff !important;
-        color: #37352f !important;
-        border: 1px solid #e0e0e0 !important;
+        color: #191919 !important;
+        border: 1px solid #dcdbdb !important;
         border-radius: 6px !important;
         font-size: 13px !important;
+        font-weight: 500 !important;
     }
     div.stButton > button:hover, .stButton button:hover {
         background-color: #f4f5f6 !important;
-        border-color: #d0d0d0 !important;
+        border-color: #c0bfbf !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -234,7 +258,7 @@ else:
         # COLUMNA IZQUIERDA: PLANNER DE TRABAJO
         # -----------------------------------------------------------------------------
         with col_izquierda:
-            st.markdown("### Panel de Inicio - Agenda del Día")
+            st.markdown("### Panel de la Agenda e Historial Clínico")
             
             c_btn1, c_btn2, _ = st.columns([2, 2, 4])
             with c_btn1:
@@ -270,11 +294,11 @@ else:
                 for _, fila in citas_tabla.iterrows():
                     c_fila1, c_fila2, c_fila3, c_fila4 = st.columns([2, 1.5, 1, 1])
                     with c_fila1:
-                        st.markdown(f"<div style='padding-top:6px; font-size:14px;'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top:6px; font-size:14px; color:#191919;'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
                     with c_fila2:
                         st.markdown(f"<div style='padding-top:6px; font-size:14px; color:#5a5d56;'>{fila['fecha_hora']}</div>", unsafe_allow_html=True)
                     with c_fila3:
-                        st.markdown(f"<div style='padding-top:6px; font-size:14px;'>{fila['estado']}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top:6px; font-size:14px; color:#191919;'>{fila['estado']}</div>", unsafe_allow_html=True)
                     with c_fila4:
                         if st.button("Ver Detalle", key=f"open_t_{fila['id']}", use_container_width=True):
                             st.session_state.side_peek_modo = "VER_CITA"
@@ -282,19 +306,19 @@ else:
                             st.rerun()
             else:
                 st.markdown("""
-                    <div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #37352f; border-radius: 4px; font-size: 14px;">
+                    <div style="background-color: #f7f7f5; padding: 12px; border-left: 4px solid #7c7b77; color: #191919; border-radius: 4px; font-size: 14px;">
                         No se encuentran registros de citas programadas para el día de hoy.
                     </div>
                 """, unsafe_allow_html=True)
 
             st.markdown("---")
 
-            st.markdown("#### 📅 Planner Interactivo")
+            st.markdown("#### 📅 Visualizador de Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
-                tipo_formato = st.selectbox("Formato de Visualización:", ["Mensual (Carga General)", "Semanal (Bloque de Horas)"])
+                tipo_formato = st.selectbox("Formato Ajustado:", ["Mensual (Carga General)", "Semanal (Horario Laboral L-V)"])
             with c_p2:
-                fecha_pivote = st.date_input("Selecciona Fecha de Enfoque:", value=date.today(), key="pivote_date")
+                fecha_pivote = st.date_input("Fecha Base Enfoque:", value=date.today(), key="pivote_date")
 
             if tipo_formato == "Mensual (Carga General)":
                 año_sel, mes_sel = fecha_pivote.year, fecha_pivote.month
@@ -320,7 +344,7 @@ else:
                     for dia_idx, f_dia in enumerate(semana):
                         with cols_dias[dia_idx]:
                             if f_dia.month == mes_sel:
-                                st.markdown(f"<span style='color:#37352f; font-weight:500; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
+                                st.markdown(f"<span style='color:#191919; font-weight:500; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
                                 f_buscar = f_dia.strftime("%Y-%m-%d")
                                 if f_buscar in diccionario_citas_mes:
                                     for cita_dia in diccionario_citas_mes[f_buscar]:
@@ -332,22 +356,20 @@ else:
                     st.markdown("<hr style='margin:4px 0; border-top:1px dashed #e3e2e0;'>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: SIDE PEEK EN CAPAS INDEPENDIENTES (CON BOTÓN DE CIERRE FIJO)
+        # COLUMNA DERECHA: SIDE PEEK CON CONTRASTE BLINDADO Y CONTROLES ACTIVOS
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
                 
-                # Fila de control superior independiente del st.form (¡Alineación perfecta!)
-                c_tit, c_close = st.columns([4, 1.2])
+                c_tit, c_close = st.columns([4, 1.5])
                 with c_tit:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📝 Registro</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📄 Evaluación</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📅 Consulta</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='margin:0; padding-top:5px;'>📅 Nueva Consulta</h4>", unsafe_allow_html=True)
                 with c_close:
-                    # El botón de escape nativo ahora funciona de forma libre y limpia
                     if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
                         st.session_state.side_peek_modo = None
                         st.session_state.cita_seleccionada_id = None
@@ -434,7 +456,7 @@ else:
                             if st.form_submit_button("Confirmar Cita Médica", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
-                                fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
+                                fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H('%H:%M:%S')')}"
                                 cursor.execute("""
                                     INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
                                     VALUES (?, ?, 'Pendiente', ?)
@@ -448,7 +470,7 @@ else:
                             st.form_submit_button("Aceptar", disabled=True)
 
     # =================================================================================
-    # OTROS MÓDULOS DE GESTIÓN
+    # REPOSITORIO GENERAL DE EXPEDIENTES (AQUÍ CORRE EL DATAFRAME INTERACTIVO CON FUNCIONES)
     # =================================================================================
     elif seccion == "📋 Expedientes Electrónicos":
         st.markdown("<h3>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)
@@ -463,6 +485,7 @@ else:
         df_exp = pd.read_sql_query(query, conn, params=args)
         conn.close()
         
+        # Ahora este elemento vuelve a tener habilitados los iconos superiores para descargar en CSV y pantalla completa
         st.dataframe(df_exp, use_container_width=True)
 
     elif seccion == "📅 Agenda de Citas":

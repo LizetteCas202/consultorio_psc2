@@ -91,7 +91,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - REPARACIÓN DE BOTONES OSCUROS Y TEXTOS FANTASMA
+# INYECCIÓN MAESTRA DE CSS - REPARACIÓN DE MENÚS DESPLEGABLES FLOTANTES (DROPDOWNS)
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
@@ -117,29 +117,25 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
 
-    /* Asegurar que los títulos de Markdown no hereden colores claros */
     [data-testid="stWidgetLabel"] p {
         color: #0f172a !important;
         font-weight: 600 !important;
     }
 
-    /* 3. SOLUCIÓN COMPLETA PARA BOTONES (REPARACIÓN DE TEXTO FANTASMA) */
-    /* Forzar que todos los botones de Streamlit tengan texto visible en gris claro/blanco */
+    /* 3. SOLUCIÓN COMPLETA PARA BOTONES */
     .stButton button {
-        color: #f8fafc !important;             /* Texto gris muy claro / blanco institucional */
+        color: #f8fafc !important;             
         font-weight: 600 !important;
         border-radius: 6px !important;
         transition: all 0.2s ease-in-out !important;
     }
     
-    /* Mantener consistencia en el texto de los iconos internos de los botones */
     .stButton button p {
         color: #f8fafc !important;
     }
 
-    /* Efecto interactivo al pasar el mouse por encima de los botones */
     .stButton button:hover {
-        background-color: #1e293b !important;  /* Un tono un poco más claro que el fondo del botón */
+        background-color: #1e293b !important;  
         color: #ffffff !important;
         border-color: #475569 !important;
     }
@@ -148,35 +144,49 @@ st.markdown("""
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
-        background-color: #ffffff !important; /* Fondo blanco */
-        color: #0f172a !important;            /* Letra azul marino oscuro */
+        background-color: #ffffff !important; 
+        color: #0f172a !important;            
         border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
         font-weight: 500 !important;
         -webkit-text-fill-color: #0f172a !important; 
     }
 
-    /* 5. DROPDOWNS Y SELECTORES (GÉNERO, CARRERA, ETC.) */
+    /* 5. FIX TOTAL PARA MENÚS DESPLEGABLES (GÉNERO, CARRERA, DIVISIÓN, SEMESTRE) */
+    /* Caja contenedora cerrada del selectbox */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
         border: 1px solid #cbd5e1 !important;
         border-radius: 6px !important;
     }
-    
-    /* Opciones desplegables */
-    div[data-baseweb="menu"] {
+
+    /* Forzar el contenedor flotante de la lista desplegable (popover/menu) */
+    div[data-baseweb="popover"], div[data-baseweb="menu"], [role="listbox"] {
         background-color: #ffffff !important;
-    }
-    div[data-baseweb="menu"] li, div[role="listbox"] div {
-        color: #0f172a !important;            
-        background-color: #ffffff !important;
-    }
-    div[data-baseweb="menu"] li:hover {
-        background-color: #e2e8f0 !important; 
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
     }
 
-    /* Botones de incremento de los números */
+    /* Forzar los elementos individuales de la lista (las opciones a elegir) */
+    div[data-baseweb="menu"] li, 
+    [role="listbox"] li, 
+    [role="option"], 
+    div[data-baseweb="popover"] div {
+        color: #0f172a !important;            
+        background-color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+
+    /* Efecto al pasar el cursor sobre las opciones del desplegable */
+    div[data-baseweb="menu"] li:hover, 
+    [role="option"]:hover,
+    div[aria-selected="true"] {
+        background-color: #f1f5f9 !important; /* Gris claro de selección */
+        color: #0284c7 !important;            /* Resaltado en azul clínico */
+    }
+
+    /* Botones de incremento del número de edad */
     div[data-testid="stNumberInput"] button {
         background-color: #e2e8f0 !important;
         color: #0f172a !important;
@@ -191,7 +201,6 @@ st.markdown("""
         border-radius: 8px !important;
     }
     
-    /* Forzar títulos internos del Form a ser completamente oscuros */
     div[data-testid="stForm"] h4, 
     div[data-testid="stForm"] p, 
     div[data-testid="stForm"] label {
@@ -289,7 +298,7 @@ else:
 
     # Navegación Lateral Izquierda
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
+    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio ", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
@@ -300,7 +309,7 @@ else:
     # =================================================================================
     # MÓDULO: INICIO Y PLANNER DINÁMICO
     # =================================================================================
-    if seccion == "🏠 Inicio y Planner":
+    if seccion == "🏠 Inicio ":
         
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([60, 40], gap="medium")
@@ -370,7 +379,7 @@ else:
             st.markdown("---")
 
             # INTERFAZ DE CALENDARIOS INTERACTIVOS
-            st.markdown("#### 📅 Calendario Clínico")
+            st.markdown("#### 📅 Visualizador de Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
                 tipo_formato = st.selectbox("Formato Ajustado:", ["Mensual (Carga General)", "Semanal (Horario Laboral L-V)"])
@@ -436,7 +445,7 @@ else:
                             st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO CON CONTRASTE COMPLETO
+        # COLUMNA DERECHA: SIDE-PEEK RECONFIGURADO
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
@@ -445,7 +454,7 @@ else:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Abrir Nuevo Expediente Clínico</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clinical Semanal</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica Semanal</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda de Consulta</h4>", unsafe_allow_html=True)
                 with c_close:

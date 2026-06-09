@@ -1,5 +1,5 @@
 # =================================================================
-#    SISTEMA COMPLETO: Consultorio Psicológico DACYTI (UJAT)
+#    SISTEMA COMPLETO CORREGIDO: Consultorio Psicológico DACYTI
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -23,7 +23,7 @@ def conectar_db_local():
     try:
         return sqlite3.connect("centro_psicologico.db")
     except Exception as e:
-        st.error(f"Error al conectar a la base de datos institucional: {e}")
+        st.error(f"Error al conectar a la base de datos: {e}")
         return None
 
 def inicializar_sistema_db():
@@ -81,8 +81,6 @@ inicializar_sistema_db()
 # --- 3. CONTROL DE ESTADOS DE SESIÓN ---
 if "autenticado" not in st.session_state: st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = ""
-
-# Estados del Side Peek: None, "VER_CITA", "NUEVO_EXPEDIENTE"
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
@@ -93,15 +91,27 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - ESTILO NOTION INTEGRADO RE-INGENIERADO
+# INYECCIÓN MAESTRA DE CSS - SANITIZADO (ELIMINA RECUADROS FANTASMAS)
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* Estructura general limpia */
+    /* 1. ELIMINAR CUALQUIER CAPA FLOTANTE O POPOVER VIEJO QUE HAGA INTERFERENCIA */
+    div[data-testid="stPopover"], div[class*="stPopover"], .stTooltipHoverTarget {
+        position: static !important;
+        box-shadow: none !important;
+    }
+    
+    /* 2. Estructura general limpia estilo Notion White */
     .stApp { background-color: #ffffff !important; }
     
-    /* Inputs y Formularios estilo Notion */
-    div[data-testid="stForm"] { background-color: #ffffff !important; border: 1px solid #e9e9e8 !important; box-shadow: none !important; }
+    /* 3. Inputs y Formularios nativos sin fondos extraños */
+    div[data-testid="stForm"] { 
+        background-color: #ffffff !important; 
+        border: 1px solid #e9e9e8 !important; 
+        box-shadow: none !important;
+        padding: 15px !important;
+        border-radius: 6px !important;
+    }
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
         background-color: #fafafa !important;
         border: 1px solid #e0e0e0 !important;
@@ -109,56 +119,56 @@ st.markdown("""
         border-radius: 4px !important;
     }
     
-    /* Barra lateral izquierda de navegación */
+    /* 4. Panel lateral de navegación */
     [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
         border-right: 1px solid #e9e9e8; 
     }
     
-    /* Tipografías e identificadores */
+    /* 5. Tipografías */
     div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, h1, h2, h3, h4, h5, span { 
         color: #37352f !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    /* Botones generales minimalistas */
+    /* 6. Botones Minimalistas */
     div.stButton > button, .stButton button {
         background-color: #ffffff !important;
         color: #37352f !important;
         border: 1px solid #e0e0e0 !important;
         border-radius: 6px !important;
         font-size: 13px !important;
-        transition: all 0.2s ease;
     }
     div.stButton > button:hover, .stButton button:hover {
         background-color: #f4f5f6 !important;
         border-color: #d0d0d0 !important;
     }
 
-    /* CONTENEDOR INTERNO DEL SIDE PEEK (COLUMNA DERECHA) */
+    /* 7. CONTENEDOR LIMPIO PARA EL SIDE PEEK (COLUMNA DERECHA) */
     .notion-side-peek-container {
         background-color: #fbfbfa !important;
         border-left: 1px solid #e3e2e0 !important;
-        padding: 20px !important;
+        padding: 25px 15px !important;
         border-radius: 4px;
         min-height: 85vh;
+        position: relative !important;
+        z-index: 999 !important; /* Forza a que se pinte por encima de cualquier bug */
     }
 
     /* Botón de flechas colapsables Notion estilo nativo */
     .notion-btn-retraer button {
         border: none !important;
         background: transparent !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
         color: #7c7b77 !important;
         font-weight: bold !important;
-        padding: 2px 10px !important;
     }
     .notion-btn-retraer button:hover {
         background-color: #efeee3 !important;
         color: #37352f !important;
     }
     
-    /* Cabecera general institucional */
+    /* Cabecera institucional */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -223,19 +233,18 @@ else:
         st.rerun()
 
     # =================================================================================
-    # MÓDULO 0: INICIO Y PLANNER DINÁMICO (SISTEMA DE DISEÑO DE COLUMNAS DIVIDIDAS)
+    # MÓDULO 0: INICIO Y PLANNER DINÁMICO
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
         
-        # DEFINICIÓN DINÁMICA DEL ESPACIO DE TRABAJO (Estilo Split View de Notion)
-        # Si el Side Peek está activo, divide la pantalla (65% izquierda, 35% derecha). Si no, usa el 100%.
+        # DEFINICIÓN DINÁMICA DEL ESPACIO DE TRABAJO (65% Izquierda - 35% Derecha)
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([65, 35], gap="large")
         else:
             col_izquierda = st.container()
 
         # -----------------------------------------------------------------------------
-        # COLUMNA IZQUIERDA: CONTENIDO PRINCIPAL (PLANNER Y TABLAS)
+        # COLUMNA IZQUIERDA: CONTENIDO PRINCIPAL
         # -----------------------------------------------------------------------------
         with col_izquierda:
             st.markdown("### Panel de Inicio - Agenda del Día")
@@ -286,7 +295,11 @@ else:
                             st.session_state.cita_seleccionada_id = fila['id']
                             st.rerun()
             else:
-                st.info("No hay registros de consultas asignadas hoy, comadre.")
+                st.markdown("""
+                    <div style="background-color: #ecf3f5; padding: 12px; border-left: 4px solid #578694; color: #2c525d; border-radius: 4px; font-size: 14px;">
+                        No tienes citas registradas para hoy, comadre.
+                    </div>
+                """, unsafe_allow_html=True)
 
             st.markdown("---")
 
@@ -334,55 +347,46 @@ else:
                     st.markdown("<hr style='margin:2px 0; border-top:1px dashed #e9e9e8;'>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: VENTANA LATERAL INTERACTIVA (SIDE PEEK NOTION)
+        # COLUMNA DERECHA: VENTANA LATERAL LIMPIA SIN INTERFERENCIAS (SIDE PEEK)
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
-                # Contenedor visual estilizado
                 st.markdown('<div class="notion-side-peek-container">', unsafe_allow_html=True)
                 
-                # CABECERA DEL SIDE PEEK: Botón Maestra de Retracción >>
-                c_retraer, c_espacio = st.columns([1, 4])
-                with c_retraer:
-                    st.markdown('<div class="notion-btn-retraer">', unsafe_allow_html=True)
-                    # Al pulsar el botón con el símbolo >> se limpia el estado y se cierra de inmediato
-                    if st.button(">>", help="Retraer panel lateral (Cerrar)"):
-                        st.session_state.side_peek_modo = None
-                        st.session_state.cita_seleccionada_id = None
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                # Botón de cierre nativo sin obstrucción visual
+                st.markdown('<div class="notion-btn-retraer">', unsafe_allow_html=True)
+                if st.button(">>", help="Retraer panel lateral"):
+                    st.session_state.side_peek_modo = None
+                    st.session_state.cita_seleccionada_id = None
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 st.markdown("---")
 
-                # --- CONTENIDO INTERNO: FORMULARIO LARGO DE NUEVO EXPEDIENTE ---
+                # FORMULARIO 1: NUEVO EXPEDIENTE
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    st.markdown("### 📝 Abrir Nuevo Expediente Clínico")
-                    st.caption("Complete los datos requeridos del alumno institucional.")
+                    st.markdown("### 📝 Nuevo Expediente Clínico")
                     
                     with st.form("form_nuevo_expediente_notion"):
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
-                        exp_mat = st.text_input("Matrícula Institucional Única:")
+                        exp_mat = st.text_input("Matrícula Institucional:")
                         
                         cf1, cf2 = st.columns(2)
                         with cf1:
                             exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                         with cf2:
-                            exp_gen = st.selectbox("Género Biológico:", ["Masculino", "Femenino", "Otro"])
+                            exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                         
                         exp_div = st.selectbox("División Académica:", list(ESTRUCTURA_UJAT.keys()))
                         exp_car = st.selectbox("Carrera Universitaria:", ESTRUCTURA_UJAT[exp_div])
-                        exp_sem = st.selectbox("Semestre Activo:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
+                        exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                         
-                        exp_tel = st.text_input("Teléfono Móvil:")
-                        exp_cor = st.text_input("Correo Institucional:")
-                        exp_tag = st.text_input("Diagnóstico (Etiquetas separadas por comas):")
-                        
-                        # Corrección: Columna correspondiente a motivo_consulta
+                        exp_tel = st.text_input("Teléfono:")
+                        exp_cor = st.text_input("Correo Electrónico:")
+                        exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):")
                         exp_obs = st.text_area("Motivo de Consulta:", height=100)
                         
-                        guardar_exp = st.form_submit_button("Guardar Registro de Expediente", use_container_width=True)
-                        
-                        if guardar_exp:
+                        if st.form_submit_button("Guardar Expediente", use_container_width=True):
                             if exp_mat.strip() and exp_nom.strip():
                                 conn = conectar_db_local()
                                 try:
@@ -392,16 +396,14 @@ else:
                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                     """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
                                     conn.commit()
-                                    st.success("¡Expediente creado exitosamente!")
+                                    st.success("¡Expediente guardado exitosamente!")
                                     st.session_state.side_peek_modo = None
                                     st.rerun()
                                 except sqlite3.IntegrityError:
-                                    st.error("La matrícula ya se encuentra en el sistema.")
+                                    st.error("Esta matrícula ya existe.")
                                 finally: conn.close()
-                            else:
-                                st.warning("Por favor rellene el Nombre y la Matrícula.")
 
-                # --- CONTENIDO INTERNO: DETALLES Y EDICIÓN DE CITA ---
+                # FORMULARIO 2: VER / EDITAR CITA
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -415,26 +417,25 @@ else:
                         st.caption(f"Matrícula: {datos_cita[8]}")
                         
                         with st.form("form_edicion_cita_notion"):
-                            peek_estado = st.selectbox("Estado de Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
-                            peek_fecha = st.text_input("Fecha y Hora Asignada:", value=datos_cita[2], disabled=True)
-                            peek_motivo = st.text_area("Motivo Clínico Registrado:", value=datos_cita[4], disabled=True)
-                            peek_notas = st.text_area("Notas Clínicas y Evolución:", value=datos_cita[5], height=120)
-                            peek_tags = st.text_input("Modificar Etiquetas de Diagnóstico:", value=datos_cita[6])
+                            peek_estado = st.selectbox("Estado:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
+                            peek_fecha = st.text_input("Fecha y Hora:", value=datos_cita[2], disabled=True)
+                            peek_motivo = st.text_area("Motivo Clínico:", value=datos_cita[4], disabled=True)
+                            peek_notas = st.text_area("Notas Clínicas de Evolución:", value=datos_cita[5], height=120)
+                            peek_tags = st.text_input("Etiquetas:", value=datos_cita[6])
 
-                            actualizar_cita = st.form_submit_button("Sincronizar Cambios Clínicos", use_container_width=True)
-                            if actualizar_cita:
+                            if st.form_submit_button("Sincronizar Cambios", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
                                 cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                                 conn.commit()
                                 conn.close()
-                                st.success("Base de datos sincronizada.")
+                                st.success("Cambios guardados.")
                                 st.session_state.side_peek_modo = None
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
 
-                # --- CONTENIDO INTERNO: AGENDAR NUEVA CITA ---
+                # FORMULARIO 3: NUEVA CITA
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
                     st.markdown("### 📅 Agendar Nueva Cita")
                     conn = conectar_db_local()
@@ -446,12 +447,11 @@ else:
                         
                         with st.form("form_nueva_cita_notion"):
                             paciente_sel = st.selectbox("Seleccionar Alumno:", list(opciones_pacientes.keys()))
-                            fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
-                            hora_cita = st.time_input("Hora de la Consulta:")
-                            motivo_cita = st.text_area("Motivo de la Cita:")
+                            fecha_cita = st.date_input("Fecha:", value=date.today())
+                            hora_cita = st.time_input("Hora:")
+                            motivo_cita = st.text_area("Motivo:")
                             
-                            crear_cita = st.form_submit_button("Confirmar y Agendar Cita", use_container_width=True)
-                            if crear_cita:
+                            if st.form_submit_button("Confirmar Cita", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
@@ -461,11 +461,9 @@ else:
                                 """, (opciones_pacientes[paciente_sel], fecha_hora_str, motivo_cita))
                                 conn.commit()
                                 conn.close()
-                                st.success("¡Cita agendada correctamente!")
+                                st.success("Cita agendada.")
                                 st.session_state.side_peek_modo = None
                                 st.rerun()
-                    else:
-                        st.warning("Primero debes registrar al menos un expediente antes de agendar una cita.")
 
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -490,4 +488,4 @@ else:
         st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar la ventana lateral interactiva de forma óptima.")
 
     elif seccion == "📊 Reportes Ejecutivos":
-        st.markdown("<h3>Panel de Métricas y Estadísticas Multidimensionales</h3>", unsafe_allow_html=True)
+        st.markdown("<h3>Panel de Métricas y Estadísticas</h3>", unsafe_allow_html=True)

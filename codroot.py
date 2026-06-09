@@ -91,7 +91,7 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - CORRECCIÓN DE CONTRASTE TOTAL (AZUL MARINO PROFUNDO)
+# INYECCIÓN MAESTRA DE CSS - REPARACIÓN DE BOTONES OSCUROS Y TEXTOS FANTASMA
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
@@ -123,7 +123,28 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* 3. BLINDAJE DE CAJAS DE TEXTO (INPUTS Y TEXTAREAS) */
+    /* 3. SOLUCIÓN COMPLETA PARA BOTONES (REPARACIÓN DE TEXTO FANTASMA) */
+    /* Forzar que todos los botones de Streamlit tengan texto visible en gris claro/blanco */
+    .stButton button {
+        color: #f8fafc !important;             /* Texto gris muy claro / blanco institucional */
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    
+    /* Mantener consistencia en el texto de los iconos internos de los botones */
+    .stButton button p {
+        color: #f8fafc !important;
+    }
+
+    /* Efecto interactivo al pasar el mouse por encima de los botones */
+    .stButton button:hover {
+        background-color: #1e293b !important;  /* Un tono un poco más claro que el fondo del botón */
+        color: #ffffff !important;
+        border-color: #475569 !important;
+    }
+
+    /* 4. BLINDAJE DE CAJAS DE TEXTO (INPUTS Y TEXTAREAS) */
     div[data-baseweb="input"] input, 
     div[data-baseweb="textarea"] textarea,
     .stTextInput input, .stPasswordInput input, .stTextArea textarea {
@@ -135,7 +156,7 @@ st.markdown("""
         -webkit-text-fill-color: #0f172a !important; 
     }
 
-    /* 4. DROPDOWNS Y SELECTORES (GÉNERO, CARRERA, ETC.) */
+    /* 5. DROPDOWNS Y SELECTORES (GÉNERO, CARRERA, ETC.) */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important; 
         color: #0f172a !important;            
@@ -161,7 +182,7 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* 5. DISEÑO DEL CONTENEDOR SIDE-PEEK (TARJETA TIPO NOTION CAJA BLANCA) */
+    /* 6. DISEÑO DEL CONTENEDOR SIDE-PEEK (TARJETA TIPO NOTION CAJA BLANCA) */
     div[data-testid="stForm"] { 
         background-color: #ffffff !important; 
         border: 1px solid #e2e8f0 !important;
@@ -177,7 +198,7 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* 6. BARRA LATERAL IZQUIERDA */
+    /* 7. BARRA LATERAL IZQUIERDA */
     [data-testid="stSidebar"] { 
         background-color: #f8fafc !important; 
         border-right: 1px solid #e2e8f0 !important; 
@@ -190,7 +211,7 @@ st.markdown("""
         color: #0f172a !important;
     }
 
-    /* 7. TABLAS, CABECERAS Y CONTENEDORES DE AVISOS */
+    /* 8. TABLAS, CABECERAS Y CONTENEDORES DE AVISOS */
     .constante-header-container {
         display: flex;
         align-items: center;
@@ -234,16 +255,6 @@ st.markdown("""
     .status-pendiente { background-color: #fef3c7; color: #d97706 !important; }
     .status-realizada { background-color: #dcfce7; color: #15803d !important; }
     .status-cancelada { background-color: #fee2e2; color: #b91c1c !important; }
-    
-    /* Botones de acción */
-    .main .stButton button {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-    }
-    .main .stButton button:hover {
-        background-color: #f1f5f9 !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -359,7 +370,7 @@ else:
             st.markdown("---")
 
             # INTERFAZ DE CALENDARIOS INTERACTIVOS
-            st.markdown("#### 📅 Visualizador de Calendario Clínico")
+            st.markdown("#### 📅 Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
                 tipo_formato = st.selectbox("Formato Ajustado:", ["Mensual (Carga General)", "Semanal (Horario Laboral L-V)"])
@@ -434,7 +445,7 @@ else:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Abrir Nuevo Expediente Clínico</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica Semanal</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clinical Semanal</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda de Consulta</h4>", unsafe_allow_html=True)
                 with c_close:

@@ -1,5 +1,5 @@
 # =================================================================
-#    SISTEMA COMPLETO: Consultorio Psicológico DACYTI
+#    SISTEMA DE GESTIÓN: Consultorio Psicológico DACYTI
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -10,7 +10,7 @@ import sqlite3
 # URL Oficial del Escudo UJAT
 LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png_seeklogo-233582.png"
 
-# --- 1. CONFIGURACIÓN DE PÁGINA ---
+# --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
     page_title="Consultorio Psicológico DACYTI",
     page_icon=LOGO_UJAT_URL,
@@ -18,12 +18,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. MOTOR DE CONEXIÓN LOCAL Y MIGRACIÓN DE BD ---
+# --- 2. MOTOR DE CONEXIÓN Y BASE DE DATOS LOCAL ---
 def conectar_db_local():
     try:
         return sqlite3.connect("centro_psicologico.db")
     except Exception as e:
-        st.error(f"Error al conectar a la base de datos: {e}")
+        st.error(f"Error de conexión con la base de datos: {e}")
         return None
 
 def inicializar_sistema_db():
@@ -67,6 +67,7 @@ def inicializar_sistema_db():
             )
         """)
         
+        # Cuenta de acceso oficial para la responsable del consultorio
         cursor.execute("SELECT * FROM usuarios WHERE usuario = 'psicologa.sara'")
         if not cursor.fetchone():
             cursor.execute("""
@@ -78,7 +79,7 @@ def inicializar_sistema_db():
 
 inicializar_sistema_db()
 
-# --- 3. CONTROL DE ESTADOS DE SESIÓN ---
+# --- 3. CONTROL DE ESTADOS DE SESIÓN (ESTRUCTURA DE FLUJO) ---
 if "autenticado" not in st.session_state: st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = ""
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
@@ -91,99 +92,102 @@ ESTRUCTURA_UJAT = {
 }
 
 # -------------------------------------------------------------------------------------
-# INYECCIÓN MAESTRA DE CSS - PURGA DE RECUADROS FANTASMAS Y ELEMENTOS FLOTANTES
+# INYECCIÓN MAESTRA DE CSS - DISEÑO INTEGRAL NOTION WHITE CON ALTA ACCESIBILIDAD
 # -------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* 1. ELIMINAR CONTENEDORES DE IMÁGENES FLOTANTES O RECUADROS RESIDUALES EN EL CUERPO */
-    div[data-testid="stImage"] img {
-        max-width: 100%;
-    }
-    /* Bloquea la superposición de capas absolutas o popovers que obstruyan la pantalla */
+    /* 1. ELIMINACIÓN DE CONTENEDORES RESIDUALES Y RECUADROS FANTASMA */
+    div[data-testid="stImage"] img { max-width: 100%; }
     div[data-testid="stPopover"], div[class*="stPopover"], .stTooltipHoverTarget {
         position: static !important;
         box-shadow: none !important;
     }
     
-    /* 2. Estructura general limpia estilo Notion White */
+    /* 2. DISEÑO DE ENTORNO LIMPIO (NOTION-STYLE) */
     .stApp { background-color: #ffffff !important; }
     
-    /* 3. Inputs y Formularios nativos sin fondos extraños */
+    /* Formateo de Bloques de Formulario Nativos */
     div[data-testid="stForm"] { 
         background-color: #ffffff !important; 
-        border: 1px solid #e9e9e8 !important; 
+        border: 1px solid #e3e2e0 !important; 
         box-shadow: none !important;
-        padding: 15px !important;
-        border-radius: 6px !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
     }
     div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
         background-color: #fafafa !important;
         border: 1px solid #e0e0e0 !important;
         color: #37352f !important;
-        border-radius: 4px !important;
+        border-radius: 5px !important;
     }
     
-    /* 4. Panel lateral de navegación */
+    /* 3. CORRECCIÓN CRÍTICA DE ACCESIBILIDAD: TEXTOS DEL MENÚ LATERAL */
     [data-testid="stSidebar"] { 
         background-color: #f4f5f6 !important; 
         border-right: 1px solid #e9e9e8; 
     }
+    [data-testid="stSidebar"] .stRadio label p,
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] h3 {
+        color: #37352f !important; 
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    [data-testid="stSidebar"] h3 { font-size: 16px !important; font-weight: 600 !important; }
     
-    /* 5. Tipografías */
+    /* 4. TIPOGRAFÍA GENERAL DEL SISTEMA */
     div[data-testid="stWidgetLabel"] p, label, .stMarkdown p, h1, h2, h3, h4, h5, span { 
         color: #37352f !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    /* 6. Botones Minimalistas */
+    /* 5. BOTONES MINIMALISTAS INSTITUCIONALES */
     div.stButton > button, .stButton button {
         background-color: #ffffff !important;
         color: #37352f !important;
         border: 1px solid #e0e0e0 !important;
         border-radius: 6px !important;
         font-size: 13px !important;
+        transition: background-color 0.2s ease;
     }
     div.stButton > button:hover, .stButton button:hover {
         background-color: #f4f5f6 !important;
         border-color: #d0d0d0 !important;
     }
 
-    /* 7. CONTENEDOR LIMPIO PARA EL SIDE PEEK (COLUMNA DERECHA) */
-    .notion-side-peek-container {
-        background-color: #fbfbfa !important;
-        border-left: 1px solid #e3e2e0 !important;
-        padding: 25px 15px !important;
-        border-radius: 4px;
-        min-height: 85vh;
-        position: relative !important;
-        z-index: 9999 !important; /* Asegura prioridad sobre cualquier renderizado bugueado */
+    /* 6. CORRECCIÓN CRÍTICA DE ACCESIBILIDAD: VISIBILIDAD DE DÍAS DEL CALENDARIO */
+    center small strong, .stMarkdown center, .stMarkdown center small {
+        color: #5a5a57 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
     }
 
-    /* Botón de flechas colapsables Notion estilo nativo */
-    .notion-btn-retraer button {
-        border: none !important;
-        background: transparent !important;
-        font-size: 18px !important;
-        color: #7c7b77 !important;
-        font-weight: bold !important;
-    }
-    .notion-btn-retraer button:hover {
-        background-color: #efeee3 !important;
-        color: #37352f !important;
+    /* 7. CONTENEDOR OPTIMIZADO PARA EL SIDE PEEK (PANEL FLOTANTE DERECHO) */
+    .notion-side-peek-container {
+        background-color: #fbfbfa !important;
+        border: 1px solid #e3e2e0 !important;
+        padding: 20px !important;
+        border-radius: 8px;
+        min-height: 80vh;
+        margin-top: 10px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.02);
     }
     
-    /* Cabecera institucional */
+    /* Cabecera del Panel Principal */
     .constante-header-container {
         display: flex;
         align-items: center;
         gap: 15px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         border-bottom: 1px solid #e9e9e8;
-        padding-bottom: 10px;
+        padding-bottom: 12px;
     }
     .constante-header-container h1 { margin: 0 !important; font-size: 22px; font-weight: 600; }
     
-    /* Tablas estilo base de datos Notion */
+    /* Tablas estilo base de datos de Notion */
     .notion-table-header {
         display: flex; 
         background-color: #f7f7f5; 
@@ -197,14 +201,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- 4. SISTEMA DE AUTENTICACIÓN ---
 if not st.session_state.autenticado:
-    # --- PROCESO DE ACCESO SEGURO ---
     st.markdown('<div style="max-width:400px; margin:auto; padding-top:100px;">', unsafe_allow_html=True)
     st.image(LOGO_UJAT_URL, width=90)
     st.markdown("### Acceso al Portal Clínico DACYTI")
     u_login = st.text_input("Usuario Corporativo:")
     p_login = st.text_input("Contraseña:", type="password")
-    if st.button("Ingresar al Sistema"):
+    if st.button("Ingresar al Sistema", use_container_width=True):
         conn = conectar_db_local()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM usuarios WHERE usuario=? AND clave_hash=?", (u_login, p_login))
@@ -218,7 +222,7 @@ if not st.session_state.autenticado:
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Renderizado de Cabecera Fija
+    # Renderizado de la Cabecera Institucional Fija
     st.markdown(f"""
         <div class="constante-header-container">
             <img src="{LOGO_UJAT_URL}" width="35">
@@ -231,29 +235,29 @@ else:
     seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas", "📊 Reportes Ejecutivos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
-    if st.sidebar.button("🔒 Cerrar Sesión"):
+    if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
         st.session_state.autenticado = False
         st.session_state.side_peek_modo = None
         st.rerun()
 
     # =================================================================================
-    # MÓDULO 0: INICIO Y PLANNER DINÁMICO
+    # MÓDULO: INICIO Y PLANNER DINÁMICO
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
         
-        # DEFINICIÓN DINÁMICA DEL ESPACIO DE TRABAJO (65% Izquierda - 35% Derecha)
+        # CONTROL DE DISTRIBUCIÓN DE COLUMNAS (65% Contenido - 35% Ventana Lateral Abierta)
         if st.session_state.side_peek_modo:
-            col_izquierda, col_derecha = st.columns([65, 35], gap="large")
+            col_izquierda, col_derecha = st.columns([65, 35], gap="medium")
         else:
             col_izquierda = st.container()
 
         # -----------------------------------------------------------------------------
-        # COLUMNA IZQUIERDA: CONTENIDO PRINCIPAL
+        # COLUMNA IZQUIERDA: PLANNER Y CONTROL DE DIARIO
         # -----------------------------------------------------------------------------
         with col_izquierda:
             st.markdown("### Panel de Inicio - Agenda del Día")
             
-            c_btn1, c_btn2, _ = st.columns([1.5, 1.5, 3])
+            c_btn1, c_btn2, _ = st.columns([2, 2, 4])
             with c_btn1:
                 if st.button("➕ Nuevo Expediente", use_container_width=True):
                     st.session_state.side_peek_modo = "NUEVO_EXPEDIENTE"
@@ -265,7 +269,7 @@ else:
 
             st.markdown("---")
 
-            # --- TABLILLA DE CITAS PROGRAMADAS ---
+            # --- SECCIÓN: CITAS PROGRAMADAS ---
             st.markdown("#### 📄 Citas Programadas")
             conn = conectar_db_local()
             citas_tabla = pd.read_sql_query("""
@@ -281,7 +285,7 @@ else:
                         <div style="flex: 2; padding-left: 5px;">Aa Nombre del Paciente</div>
                         <div style="flex: 1.5;">📅 Fecha y Hora</div>
                         <div style="flex: 1;">✨ Estado</div>
-                        <div style="flex: 1; text-align: center;">⚙️ Acción</div>
+                        <div style="flex: 1; text-align: center;">⚙️ Gestión</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -294,7 +298,7 @@ else:
                     with c_fila3:
                         st.markdown(f"<div style='padding-top:6px; font-size:14px;'>{fila['estado']}</div>", unsafe_allow_html=True)
                     with c_fila4:
-                        if st.button("Abrir 📄", key=f"open_t_{fila['id']}", use_container_width=True):
+                        if st.button("Ver Detalle", key=f"open_t_{fila['id']}", use_container_width=True):
                             st.session_state.side_peek_modo = "VER_CITA"
                             st.session_state.cita_seleccionada_id = fila['id']
                             st.rerun()
@@ -307,7 +311,7 @@ else:
 
             st.markdown("---")
 
-            # --- PLANNER CLÍNICO (CALENDARIO VISUAL) ---
+            # --- SECCIÓN: PLANNER CLÍNICO (CALENDARIO) ---
             st.markdown("#### 📅 Planner Interactivo")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
@@ -329,6 +333,7 @@ else:
                         diccionario_citas_mes[f_str].append(c_act)
                     except: pass
 
+                # Cabecera de días con tipografía corregida y visible
                 dias_semana_nombres = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"]
                 cols_cabecera = st.columns(7)
                 for idx, d_nom in enumerate(dias_semana_nombres):
@@ -339,7 +344,7 @@ else:
                     for dia_idx, f_dia in enumerate(semana):
                         with cols_dias[dia_idx]:
                             if f_dia.month == mes_sel:
-                                st.markdown(f"<span style='color:#6a6a65; font-size:11px;'>{f_dia.day}</span>", unsafe_allow_html=True)
+                                st.markdown(f"<span style='color:#37352f; font-weight:500; font-size:12px;'>{f_dia.day}</span>", unsafe_allow_html=True)
                                 f_buscar = f_dia.strftime("%Y-%m-%d")
                                 if f_buscar in diccionario_citas_mes:
                                     for cita_dia in diccionario_citas_mes[f_buscar]:
@@ -348,29 +353,35 @@ else:
                                             st.session_state.side_peek_modo = "VER_CITA"
                                             st.session_state.cita_seleccionada_id = cita_dia['id']
                                             st.rerun()
-                    st.markdown("<hr style='margin:2px 0; border-top:1px dashed #e9e9e8;'>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin:4px 0; border-top:1px dashed #e3e2e0;'>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: VENTANA LATERAL LIMPIA (SIDE PEEK)
+        # COLUMNA DERECHA: VENTANA LATERAL RETRAÍBLE (SIDE PEEK INTEGRAL)
         # -----------------------------------------------------------------------------
         if st.session_state.side_peek_modo:
             with col_derecha:
                 st.markdown('<div class="notion-side-peek-container">', unsafe_allow_html=True)
                 
-                # Botón de cierre nativo formal
-                st.markdown('<div class="notion-btn-retraer">', unsafe_allow_html=True)
-                if st.button(">>", help="Ocultar panel lateral"):
-                    st.session_state.side_peek_modo = None
-                    st.session_state.cita_seleccionada_id = None
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+                # Encabezado de control alineado para la acción de cierre
+                c_peek_head, c_peek_close = st.columns([4, 1])
+                with c_peek_head:
+                    if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
+                        st.markdown("<h4 style='margin:0;'>📝 Registro</h4>", unsafe_allow_html=True)
+                    elif st.session_state.side_peek_modo == "VER_CITA":
+                        st.markdown("<h4 style='margin:0;'>📄 Evaluación</h4>", unsafe_allow_html=True)
+                    elif st.session_state.side_peek_modo == "NUEVA_CITA":
+                        st.markdown("<h4 style='margin:0;'>📅 Programación</h4>", unsafe_allow_html=True)
+                with c_peek_close:
+                    if st.button(">>", help="Cerrar panel lateral", use_container_width=True):
+                        st.session_state.side_peek_modo = None
+                        st.session_state.cita_seleccionada_id = None
+                        st.rerun()
                 
-                st.markdown("---")
+                st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
 
-                # FORMULARIO 1: NUEVO EXPEDIENTE
+                # ACCIÓN A: FORMULARIO DE NUEVO EXPEDIENTE
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    st.markdown("### 📝 Nuevo Expediente Clínico")
-                    
+                    st.markdown("##### Nuevo Expediente Clínico")
                     with st.form("form_nuevo_expediente_notion"):
                         exp_nom = st.text_input("Nombre Completo del Alumno:")
                         exp_mat = st.text_input("Matrícula Institucional:")
@@ -388,7 +399,7 @@ else:
                         exp_tel = st.text_input("Teléfono de Contacto:")
                         exp_cor = st.text_input("Correo Electrónico:")
                         exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):")
-                        exp_obs = st.text_area("Motivo de Consulta:", height=100)
+                        exp_obs = st.text_area("Motivo de Consulta Inicial:", height=100)
                         
                         if st.form_submit_button("Registrar Expediente", use_container_width=True):
                             if exp_mat.strip() and exp_nom.strip():
@@ -403,10 +414,10 @@ else:
                                     st.session_state.side_peek_modo = None
                                     st.rerun()
                                 except sqlite3.IntegrityError:
-                                    st.error("La matrícula ingresada ya se encuentra registrada.")
+                                    st.error("La matrícula ingresada ya se encuentra registrada en el sistema.")
                                 finally: conn.close()
 
-                # FORMULARIO 2: VER / EDITAR CITA
+                # ACCIÓN B: VER Y EDITAR EXPEDIENTE/NOTAS DE CITA SELECCIONADA
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -416,17 +427,17 @@ else:
                     conn.close()
 
                     if datos_cita:
-                        st.markdown(f"### 📄 {datos_cita[1]}")
+                        st.markdown(f"##### {datos_cita[1]}")
                         st.caption(f"Matrícula: {datos_cita[8]}")
                         
                         with st.form("form_edicion_cita_notion"):
-                            peek_estado = st.selectbox("Estado de la Cita:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
-                            peek_fecha = st.text_input("Fecha y Hora:", value=datos_cita[2], disabled=True)
+                            peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
+                            peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
                             peek_motivo = st.text_area("Motivo Clínico:", value=datos_cita[4], disabled=True)
-                            peek_notas = st.text_area("Notas Clínicas de Evolución:", value=datos_cita[5], height=120)
-                            peek_tags = st.text_input("Etiquetas Diagnósticas:", value=datos_cita[6])
+                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=150)
+                            peek_tags = st.text_input("Etiquetas Clínicas:", value=datos_cita[6])
 
-                            if st.form_submit_button("Actualizar Registro", use_container_width=True):
+                            if st.form_submit_button("Actualizar Expediente", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
@@ -437,9 +448,9 @@ else:
                                 st.session_state.cita_seleccionada_id = None
                                 st.rerun()
 
-                # FORMULARIO 3: NUEVA CITA
+                # ACCIÓN C: AGENDAR NUEVA CITA DESDE EL PLANNER
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                    st.markdown("### 📅 Agendar Nueva Cita")
+                    st.markdown("##### Registrar Nueva Cita")
                     conn = conectar_db_local()
                     expedientes_df = pd.read_sql_query("SELECT id, nombre, matricula FROM expedientes", conn)
                     conn.close()
@@ -449,11 +460,11 @@ else:
                         
                         with st.form("form_nueva_cita_notion"):
                             paciente_sel = st.selectbox("Seleccionar Alumno:", list(opciones_pacientes.keys()))
-                            fecha_cita = st.date_input("Fecha Programada:", value=date.today())
-                            hora_cita = st.time_input("Hora Programada:")
-                            motivo_cita = st.text_area("Motivo de la Sesión:")
+                            fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
+                            hora_cita = st.time_input("Hora de la Consulta:")
+                            motivo_cita = st.text_area("Descripción / Motivo:")
                             
-                            if st.form_submit_button("Confirmar Cita", use_container_width=True):
+                            if st.form_submit_button("Confirmar Programación", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
@@ -465,15 +476,18 @@ else:
                                 conn.close()
                                 st.session_state.side_peek_modo = None
                                 st.rerun()
+                    else:
+                        st.warning("Debe registrar al menos un expediente antes de agendar una nueva cita.")
 
                 st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================
-    # OTROS MÓDULOS DE GESTIÓN
+    # REPOSITORIO GENERAL DE EXPEDIENTES
     # =================================================================================
     elif seccion == "📋 Expedientes Electrónicos":
         st.markdown("<h3>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)
         bus_nom = st.text_input("🔍 Buscar Alumno por Nombre o Matrícula:")
+        
         conn = conectar_db_local()
         query = "SELECT matricula, nombre, genero, edad, division, carrera, semestre, etiquetas, observaciones FROM expedientes WHERE 1=1"
         args = []
@@ -482,11 +496,16 @@ else:
             args.extend([f"%{bus_nom}%", f"%{bus_nom}%"])
         df_exp = pd.read_sql_query(query, conn, params=args)
         conn.close()
+        
         st.dataframe(df_exp, use_container_width=True)
 
+    # =================================================================================
+    # MÓDULOS DE CONTROL COMPLEMENTARIOS
+    # =================================================================================
     elif seccion == "📅 Agenda de Citas":
         st.markdown("<h3>Control de Citas Clínicas e Historial de Sesiones</h3>", unsafe_allow_html=True)
         st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar la ventana lateral interactiva de forma óptima.")
 
     elif seccion == "📊 Reportes Ejecutivos":
         st.markdown("<h3>Panel de Métricas y Estadísticas</h3>", unsafe_allow_html=True)
+        st.write("Módulo en desarrollo para la generación de analíticas semestrales institucionales.")

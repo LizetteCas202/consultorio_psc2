@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime, date, timedelta
 import calendar
 import sqlite3
+import urllib.parse
 
 # URL Oficial del Escudo UJAT
 LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png_seeklogo-233582.png"
@@ -51,7 +52,7 @@ def inicializar_sistema_db():
                 genero TEXT,
                 edad INTEGER DEFAULT 20,
                 division TEXT,
-                carrera TEXT,
+                carretera TEXT,
                 semestre TEXT,
                 telefono TEXT,
                 correo TEXT,
@@ -73,25 +74,20 @@ def inicializar_sistema_db():
         """)
         
         # --- 🚨 MIGRACIÓN AUTOMÁTICA EXTRA: EVITAR OPERATIONALERROR ---
-        # Verificamos si la columna 'notas_evolucion' existe en la tabla citas
         cursor.execute("PRAGMA table_info(citas)")
         columnas_citas = [col[1] for col in cursor.fetchall()]
         if "notas_evolucion" not in columnas_citas:
-            try:
-                cursor.execute("ALTER TABLE citas ADD COLUMN notas_evolucion TEXT DEFAULT ''")
+            try: cursor.execute("ALTER TABLE citas ADD COLUMN notas_evolucion TEXT DEFAULT ''")
             except: pass
 
-        # Verificamos si la columna 'etiquetas' existe en la tabla expedientes
         cursor.execute("PRAGMA table_info(expedientes)")
         columnas_exps = [col[1] for col in cursor.fetchall()]
         if "etiquetas" not in columnas_exps:
-            try:
-                cursor.execute("ALTER TABLE expedientes ADD COLUMN etiquetas TEXT DEFAULT ''")
+            try: cursor.execute("ALTER TABLE expedientes ADD COLUMN etiquetas TEXT DEFAULT ''")
             except: pass
             
         if "observaciones" not in columnas_exps:
-            try:
-                cursor.execute("ALTER TABLE expedientes ADD COLUMN observaciones TEXT DEFAULT ''")
+            try: cursor.execute("ALTER TABLE expedientes ADD COLUMN observaciones TEXT DEFAULT ''")
             except: pass
 
         # Insertar usuario por defecto si no existe
@@ -454,7 +450,7 @@ else:
                     if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "VER_CITA":
-                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clinical</h4>", unsafe_allow_html=True)
                     elif st.session_state.side_peek_modo == "NUEVA_CITA":
                         st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda</h4>", unsafe_allow_html=True)
                 with c_close:
@@ -512,10 +508,9 @@ else:
                             st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA (¡SISTEMA BLINDADO AQUÍ!) ---
+                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
-                    # Agregamos bloques IFNULL para resguardar la consulta si las nuevas columnas inyectadas vinieran vacías
                     datos_cita = conn.cursor().execute("""
                         SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, 
                                IFNULL(c.notas_evolucion, '') as notas_ev, 
@@ -530,7 +525,6 @@ else:
                     if datos_cita:
                         st.markdown(f"<span style='color:#0284c7 !important; font-size:14px; font-weight: 600;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
                         
-                        # Formulario seguro de edición sin callbacks cruzados
                         with st.form("form_edicion_cita_notion"):
                             peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
                             peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
@@ -615,27 +609,157 @@ else:
                     st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================
-    # OTROS MÓDULOS SECUNDARIOS
+    # PANALES SECUNDARIOS DESARROLLADOS: 📅 AGENDA DE CITAS
     # =================================================================================
-    elif seccion == "📋 Expedientes Electrónicos":
-        st.markdown("<h3 style='color:#0f172a !important;'>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)
-        bus_nom = st.text_input("🔍 Buscar Alumno por Nombre o Matrícula:")
-        
-        conn = conectar_db_local()
-        query = "SELECT matricula, nombre, genero, edad, division, carrera, semestre, etiquetas, observaciones FROM expedientes WHERE 1=1"
-        args = []
-        if bus_nom:
-            query += " AND (nombre LIKE ? OR matricula LIKE ?)"
-            args.extend([f"%{bus_nom}%", f"%{bus_nom}%"])
-        df_exp = pd.read_sql_query(query, conn, params=args)
-        conn.close()
-        
-        st.dataframe(df_exp, use_container_width=True)
-
     elif seccion == "📅 Agenda de Citas":
-        st.markdown("<h3 style='color:#0f172a !important;'>Control de Citas Clínicas e Historial de Sesiones</h3>", unsafe_allow_html=True)
-        st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar la ventana lateral interactiva de forma óptima.")
+        st.markdown("### 📅 Control Maestro de Citas y Agendamiento Directo")
+        st.markdown("Gestión integrada de citas. Selecciona un alumno de la base de datos institucional para calendarizar nuevas sesiones de acompañamiento.")
+        
+        tab_agendar, tab_historial = st.tabs(["🆕 Agendar Nueva Cita", "🗃️ Historial General de Citas"])
+        
+        with tab_agendar:
+            st.markdown("#### 📝 Programar Sesión Psicológica")
+            
+            # Carga dinámica de expedientes para el selector
+            conn = conectar_db_local()
+            df_expedientes = pd.read_sql_query("SELECT id, matricula, nombre, telefono FROM expedientes ORDER BY nombre ASC", conn)
+            conn.close()
+            
+            if df_expedientes.empty:
+                st.warning("⚠️ No existen alumnos registrados en el sistema. Vaya al módulo '🏠 Inicio y Planner' o '📋 Expedientes Electrónicos' para crear el primero.")
+            else:
+                # Creación de etiquetas amigables para el selectbox
+                opciones_alumnos = {row['id']: f"👤 {row['nombre']} ({row['matricula']})" for _, row in df_expedientes.iterrows()}
+                
+                col_izq_c, col_der_c = st.columns([1, 1], gap="large")
+                
+                with col_izq_c:
+                    st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
+                    st.markdown("##### 📌 Datos de la Cita")
+                    
+                    alumno_sel_id = st.selectbox(
+                        "Seleccione el Alumno Paciente:",
+                        options=list(opciones_alumnos.keys()),
+                        format_func=lambda x: opciones_alumnos[x]
+                    )
+                    
+                    c_fecha, c_hora = st.columns(2)
+                    with c_fecha:
+                        fecha_nueva = st.date_input("Fecha de Consulta:", value=date.today(), key="fecha_modulo_agenda")
+                    with c_hora:
+                        hora_nueva = st.time_input("Hora de Consulta:", key="hora_modulo_agenda")
+                        
+                    motivo_nuevo = st.text_area("Motivo de la Sesión / Observación Preliminar:", placeholder="Escriba la razón de la consulta o de seguimiento...")
+                    
+                    btn_agendar = st.button("🗓️ Confirmar y Guardar en Agenda", use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    if btn_agendar:
+                        conn = conectar_db_local()
+                        cursor = conn.cursor()
+                        fecha_hora_completa = f"{fecha_nueva} {hora_nueva.strftime('%H:%M:%S')}"
+                        
+                        cursor.execute("""
+                            INSERT INTO citas (expediente_id, fecha_hora, estado, motivo, notas_evolucion)
+                            VALUES (?, ?, 'Pendiente', ?, '')
+                        """, (alumno_sel_id, fecha_hora_completa, motivo_nuevo))
+                        conn.commit()
+                        conn.close()
+                        
+                        st.success("✨ ¡Cita agendada correctamente en el sistema institucional!")
+                        st.balloons()
+                        
+                with col_der_c:
+                    st.markdown('<div class="custom-card-form" style="height: 100%;">', unsafe_allow_html=True)
+                    st.markdown("##### 💬 Notificación Manual Directa")
+                    st.write("Coordina el recordatorio de asistencia con el estudiante. Al hacer clic, se estructurará un mensaje personalizado.")
+                    
+                    alumno_info = df_expedientes[df_expedientes['id'] == alumno_sel_id].iloc[0]
+                    telefono_alumno = str(alumno_info['telefono']).strip()
+                    
+                    # Estructuración de texto limpio para WhatsApp institucional
+                    txt_mensaje = (
+                        f"Hola, {alumno_info['nombre']}. Te saludamos del Consultorio Psicológico DACYTI (UJAT). "
+                        f"Confirmamos tu próxima cita de atención psicológica programada para el día {fecha_nueva.strftime('%d/%m/%Y')} "
+                        f"a las {hora_nueva.strftime('%H:%M')} hrs. ¡Te esperamos!"
+                    )
+                    
+                    st.text_area("Previsualización del Mensaje:", value=txt_mensaje, height=110, disabled=True)
+                    
+                    if telefono_alumno and telefono_alumno != "None" and telefono_alumno != "":
+                        # Formateo seguro para URL
+                        texto_codificado = urllib.parse.quote(txt_mensaje)
+                        url_whatsapp = f"https://api.whatsapp.com/send?phone={telefono_alumno}&text={texto_codificado}"
+                        
+                        st.markdown(f"""
+                            <a href="{url_whatsapp}" target="_blank" style="text-decoration: none;">
+                                <div style="background-color: #25d366; color: white; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-top: 10px;">
+                                    💬 Enviar Recordatorio por WhatsApp
+                                </div>
+                            </a>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.warning("⚠️ El expediente de este alumno no cuenta con un número telefónico válido registrado para habilitar el enlace directo.")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+        with tab_historial:
+            st.markdown("#### 🗃️ Bitácora de Citas Registradas")
+            
+            conn = conectar_db_local()
+            df_todas_citas = pd.read_sql_query("""
+                SELECT c.id, e.matricula, e.nombre, c.fecha_hora, c.estado, c.motivo, IFNULL(c.notas_evolucion, '') as notas_evolucion
+                FROM citas c 
+                JOIN expedientes e ON c.expediente_id = e.id
+                ORDER BY c.fecha_hora DESC
+            """, conn)
+            conn.close()
+            
+            if df_todas_citas.empty:
+                st.info("No se registran datos históricos de citas programadas.")
+            else:
+                # Buscador dinámico de bitácora
+                busqueda_bitacora = st.text_input("🔍 Filtrar historial por Nombre o Matrícula:", value="")
+                
+                if busqueda_bitacora:
+                    df_todas_citas = df_todas_citas[
+                        df_todas_citas['nombre'].str.contains(busqueda_bitacora, case=False) |
+                        df_todas_citas['matricula'].str.contains(busqueda_bitacora, case=False)
+                    ]
+                
+                # Renderizado estilo Notion
+                st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
+                st.markdown("""
+                    <div class="notion-table-header">
+                        <div style="flex: 1; padding-left: 5px;">Matrícula</div>
+                        <div style="flex: 2;">Nombre del Alumno</div>
+                        <div style="flex: 1.5;">Fecha y Hora</div>
+                        <div style="flex: 1;">Estado</div>
+                        <div style="flex: 2.5;">Motivo de la Sesión</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                for _, r_cita in df_todas_citas.iterrows():
+                    col_b1, col_b2, col_b3, col_b4, col_b5 = st.columns([1, 2, 1.5, 1, 2.5])
+                    with col_b1:
+                        st.markdown(f"<div class='notion-table-row'>🔑 {r_cita['matricula']}</div>", unsafe_allow_html=True)
+                    with col_b2:
+                        st.markdown(f"<div class='notion-table-row'><b>{r_cita['nombre']}</b></div>", unsafe_allow_html=True)
+                    with col_b3:
+                        st.markdown(f"<div class='notion-table-row'>{r_cita['fecha_hora']}</div>", unsafe_allow_html=True)
+                    with col_b4:
+                        # Color dinámico de acuerdo al estado
+                        badge_color = "#fef3c7" if r_cita['estado'] == "Pendiente" else "#dcfce7" if r_cita['estado'] == "Realizada" else "#fee2e2"
+                        st.markdown(f"<div class='notion-table-row'><span style='background-color:{badge_color}; padding: 2px 8px; border-radius:4px; font-size:12px; font-weight:600;'>{r_cita['estado']}</span></div>", unsafe_allow_html=True)
+                    with col_b5:
+                        st.markdown(f"<div class='notion-table-row' style='font-size:13px; color:#475569;'>{r_cita['motivo'][:50]}...</div>", unsafe_allow_html=True)
+                        
+                st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- OTROS MÓDULOS DEL SIDEBAR ---
+    elif seccion == "📋 Expedientes Electrónicos":
+        st.markdown("### 📋 Expedientes Electrónicos")
+        st.info("Módulo secundario en desarrollo. Los datos de expedientes bases están siendo alimentados de manera local.")
+        
     elif seccion == "📊 Reportes Ejecutivos":
-        st.markdown("<h3 style='color:#0f172a !important;'>Panel de Métricas y Estadísticas</h3>", unsafe_allow_html=True)
-        st.write("Módulo en desarrollo para la generación de analíticas semestrales institucionales.")
+        st.markdown("### 📊 Reportes Ejecutivos y Estadísticas")
+        st.info("Módulo secundario en desarrollo. Enlazará las métricas de diagnóstico clínico.")

@@ -528,56 +528,64 @@ else:
         with c_crear:
             st.markdown("#### 📋 Agendar Nueva Sesión")
             with st.form("form_modulo_citas_directo"):
-                c_mat = st.text_input("Matrícula del Alumno Pasante/Estudiante:").strip()
+                c_mat = st.text_input("Matrícula del Alumno:").strip()
                 c_fecha = st.date_input("Fecha Programada:", value=date.today())
                 c_hora = st.time_input("Hora Programada:")
-                c_motivo = st.text_area("Motivo de la sesión o Sintomatología reportada:")
+                c_motivo = st.text_area("Motivo de la sesión:")
                 
                 if st.form_submit_button("Confirmar y Guardar Cita", use_container_width=True):
-                    if c_mat:
-                        conn = conectar_db_local()
-                        al_datos = conn.cursor().execute("SELECT id FROM expedientes WHERE matricula = ?", (c_mat,)).fetchone()
-                        if al_datos:
-                            fh_completa = f"{c_fecha} {c_hora.strftime('%H:%M:%S')}"
-                            conn.cursor().execute("""
-                                INSERT INTO citas (expediente_id, fecha_hora, estado, motivo) 
-                                VALUES (?, ?, 'Pendiente', ?)
-                            """, (al_datos[0], fh_completa, c_motivo))
-                            conn.commit()
-                            st.success("¡Cita programada con éxito en la base de datos!")
-                        else:
-                            st.error("Error: La matrícula ingresada no cuenta con un expediente base. Regístralo primero.")
-                        conn.close()
+                    if not c_mat:
+                        st.warning("Ingrese una matrícula.")
                     else:
-                        st.warning("Por favor, digite una matrícula institucional válida.")
+                        conn = conectar_db_local()
+                        cursor = conn.cursor()
+                        # Verificar existencia del alumno
+                        alumno = cursor.execute("SELECT id FROM expedientes WHERE matricula = ?", (c_mat,)).fetchone()
+                        
+                        if alumno:
+                            exp_id = alumno[0]
+                            # Crear rangos para evitar solapamiento (Cita de 1 hora)
+                            fecha_inicio = datetime.combine(c_fecha, c_hora)
+                            fecha_fin = fecha_inicio + timedelta(hours=1)
+                            
+                            # Consulta de conflicto: ¿Existe otra cita en este rango?
+                            cursor.execute("""
+                                SELECT id FROM citas 
+                                WHERE estado != 'Cancelada' 
+                                AND datetime(fecha_hora) >= ? 
+                                AND datetime(fecha_hora) < ?
+                            """, (fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'), fecha_fin.strftime('%Y-%m-%d %H:%M:%S')))
+                            
+                            if cursor.fetchone():
+                                st.error("⚠️ **Conflicto de horario:** Ya existe una cita activa en este bloque de 1 hora.")
+                            else:
+                                cursor.execute("""
+                                    INSERT INTO citas (expediente_id, fecha_hora, estado, motivo) 
+                                    VALUES (?, ?, 'Pendiente', ?)
+                                """, (exp_id, fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'), c_motivo))
+                                conn.commit()
+                                st.success("✅ Cita programada correctamente.")
+                                st.rerun() # Recargar para actualizar tablas
+                        else:
+                            st.error("Error: La matrícula no existe en el sistema.")
+                        conn.close()
 
         with c_lista:
-            st.markdown("#### 📜 Historial Clínico de Sesiones")
+            st.markdown("#### 📜 Historial de Sesiones")
             conn = conectar_db_local()
-            todas_citas_df = pd.read_sql_query("""
-                SELECT c.id as 'ID Cita', e.matricula as 'Matrícula', e.nombre as 'Alumno', 
-                       c.fecha_hora as 'Fecha/Hora', c.estado as 'Estado', c.motivo as 'Motivo Sesión',
-                       c.notas_evolucion as 'Notas Clínicas'
-                FROM citas c JOIN expedientes e ON c.expediente_id = e.id
+            # Corrección: Uso de alias claros y orden cronológico
+            df_citas = pd.read_sql_query("""
+                SELECT c.id, e.nombre as 'Alumno', c.fecha_hora as 'Fecha/Hora', c.estado, c.motivo 
+                FROM citas c 
+                JOIN expedientes e ON c.expediente_id = e.id 
                 ORDER BY c.fecha_hora DESC
             """, conn)
             conn.close()
-
-            if not todas_citas_df.empty:
-                st.dataframe(todas_citas_df, use_container_width=True, hide_index=True)
-                
-                st.markdown("#### 📑 Modificar Estado de una Citas Rápidamente")
-                c_id_sel = st.number_input("Digitar ID de Cita a modificar:", min_value=1, step=1)
-                c_est_sel = st.selectbox("Nuevo Estado Clínico:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"])
-                if st.button("Actualizar Estado"):
-                    conn = conectar_db_local()
-                    conn.cursor().execute("UPDATE citas SET estado = ? WHERE id = ?", (c_est_sel, int(c_id_sel)))
-                    conn.commit()
-                    conn.close()
-                    st.success(f"Cita {c_id_sel} cambiada a {c_est_sel}")
-                    st.rerun()
+            
+            if not df_citas.empty:
+                st.dataframe(df_citas, use_container_width=True, hide_index=True)
             else:
-                st.info("No se registran citas programadas en la bitácora.")
+                st.info("Sin citas registradas.")
 
     # =================================================================================
     # MÓDULO 4: 📊 ESTADÍSTICAS DASHBOARD (RECONSTRUIDO CON GÉNERO, EDAD, CARRERA, DIVISIÓN Y DIAGNÓSTICO)

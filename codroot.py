@@ -72,7 +72,8 @@ def inicializar_sistema_db():
             )
         """)
         
-        # --- MIGRACIÓN AUTOMÁTICA EXTRA ---
+        # --- 🚨 MIGRACIÓN AUTOMÁTICA EXTRA: EVITAR OPERATIONALERROR ---
+        # Verificamos si la columna 'notas_evolucion' existe en la tabla citas
         cursor.execute("PRAGMA table_info(citas)")
         columnas_citas = [col[1] for col in cursor.fetchall()]
         if "notas_evolucion" not in columnas_citas:
@@ -80,6 +81,7 @@ def inicializar_sistema_db():
                 cursor.execute("ALTER TABLE citas ADD COLUMN notas_evolucion TEXT DEFAULT ''")
             except: pass
 
+        # Verificamos si la columna 'etiquetas' existe en la tabla expedientes
         cursor.execute("PRAGMA table_info(expedientes)")
         columnas_exps = [col[1] for col in cursor.fetchall()]
         if "etiquetas" not in columnas_exps:
@@ -105,19 +107,11 @@ def inicializar_sistema_db():
 # Inicializar y reparar Base de Datos automáticamente
 inicializar_sistema_db()
 
-# Re-verificación local de columnas para el flujo dinámico del script
-conn_check = conectar_db_local()
-cursor_check = conn_check.cursor()
-cursor_check.execute("PRAGMA table_info(citas)")
-columnas_citas = [col[1] for col in cursor_check.fetchall()]
-conn_check.close()
-
 # --- 3. CONTROL DE ESTADOS DE SESIÓN ---
 if "autenticado" not in st.session_state: st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = ""
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
-if "expediente_seleccionado_id" not in st.session_state: st.session_state.expediente_seleccionado_id = None
 
 # Mapeo maestro exclusivo: Divisiones y Carreras de la UJAT (Campus Chontalpa)
 CARRERAS_POR_DIVISION = {
@@ -299,6 +293,7 @@ if not st.session_state.autenticado:
             st.error("Credenciales institucionales incorrectas.")
         conn.close()
     st.markdown('</div>', unsafe_allow_html=True)
+
 else:
     # Cabecera Fija del Consultorio DACYTI
     st.markdown(f"""
@@ -318,28 +313,17 @@ else:
         st.session_state.side_peek_modo = None
         st.rerun()
 
-    # Carga base de datos global de citas para el renderizador de calendarios
-    conn = conectar_db_local()
-    citas_tabla_global = pd.read_sql_query("""
-        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
-        FROM citas c JOIN expedientes e ON c.expediente_id = e.id
-        ORDER BY c.fecha_hora ASC
-    """, conn)
-    conn.close()
-
     # =================================================================================
-    # LÓGICA DE CONTROL COLUMNAS (SIDE-PEEK) EN SECCIONES ACEPTADAS
+    # MÓDULO MAIN: INICIO Y PLANNER DINÁMICO
     # =================================================================================
-    if st.session_state.side_peek_modo:
-        col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
-    else:
-        col_izquierda = st.container()
+    if seccion == "🏠 Inicio y Planner":
+        
+        if st.session_state.side_peek_modo:
+            col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
+        else:
+            col_izquierda = st.container()
 
-    with col_izquierda:
-        # =================================================================================
-        # MÓDULO 1: INICIO Y PLANNER DINÁMICO
-        # =================================================================================
-        if seccion == "🏠 Inicio y Planner":
+        with col_izquierda:
             st.markdown("### Panel de la Agenda e Historial Clínico")
             
             c_btn1, c_btn2, _ = st.columns([2.5, 2.5, 3])
@@ -353,9 +337,18 @@ else:
                     st.rerun()
 
             st.markdown("---")
-            st.markdown("#### 📄 Citas Programadas Próximas")
-            
-            if not citas_tabla_global.empty:
+
+            # EXTRAER CITAS DESDE SQLITE
+            conn = conectar_db_local()
+            citas_tabla = pd.read_sql_query("""
+                SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo 
+                FROM citas c JOIN expedientes e ON c.expediente_id = e.id
+                ORDER BY c.fecha_hora ASC
+            """, conn)
+            conn.close()
+
+            st.markdown("#### 📄 Citas Programadas")
+            if not citas_tabla.empty:
                 st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
                 st.markdown("""
                     <div class="notion-table-header">
@@ -366,7 +359,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
 
-                for _, fila in citas_tabla_global.iterrows():
+                for _, fila in citas_tabla.iterrows():
                     c_fila1, c_fila2, c_fila3, c_fila4 = st.columns([2, 1.5, 1, 1])
                     with c_fila1:
                         st.markdown(f"<div class='notion-table-row'>📄 {fila['nombre']}</div>", unsafe_allow_html=True)
@@ -383,135 +376,18 @@ else:
             else:
                 st.markdown('<div style="background-color: #ffffff; padding: 14px; border-left: 4px solid #0f172a; color: #0f172a; border-radius: 4px; font-size: 14px; border: 1px solid #e2e8f0; font-weight: 500;">No se encuentran registros de citas programadas en la base de datos.</div>', unsafe_allow_html=True)
 
-        # =================================================================================
-        # MÓDULO 2: EXPEDIENTES ELECTRÓNICOS
-        # =================================================================================
-        elif seccion == "📋 Expedientes Electrónicos":
-            st.markdown("### 📋 Base de Datos de Expedientes Electrónicos")
-            
-            # Buscador Avanzado Estilo Notion
-            busqueda = st.text_input("🔍 Buscar expediente por nombre, matrícula o etiqueta diagnóstica:", "").strip()
-            
-            conn = conectar_db_local()
-            query_exp = "SELECT * FROM expedientes"
-            if busqueda:
-                query_exp += f" WHERE nombre LIKE '%{busqueda}%' OR matricula LIKE '%{busqueda}%' OR etiquetas LIKE '%{busqueda}%'"
-            df_exps = pd.read_sql_query(query_exp, conn)
-            conn.close()
-
-            if not df_exps.empty:
-                st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
-                st.markdown("""
-                    <div class="notion-table-header">
-                        <div style="flex: 1; padding-left: 5px;">🔢 Matrícula</div>
-                        <div style="flex: 2;">Aa Nombre Completo</div>
-                        <div style="flex: 1.5;">🎓 Carrera</div>
-                        <div style="flex: 1.5;">🏷️ Etiquetas</div>
-                        <div style="flex: 1; text-align: center;">⚙️ Acción</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                for _, exp_row in df_exps.iterrows():
-                    c1, c2, c3, c4, c5 = st.columns([1, 2, 1.5, 1.5, 1])
-                    with c1: st.markdown(f"<div class='notion-table-row'><b>{exp_row['matricula']}</b></div>", unsafe_allow_html=True)
-                    with c2: st.markdown(f"<div class='notion-table-row'>{exp_row['nombre']}</div>", unsafe_allow_html=True)
-                    with c3: st.markdown(f"<div class='notion-table-row'>{exp_row['carrera']}</div>", unsafe_allow_html=True)
-                    with c4: 
-                        etq = exp_row['etiquetas'] if exp_row['etiquetas'] else 'ninguna'
-                        st.markdown(f"<div class='notion-table-row'><span style='background-color:#ffe4e6; padding:2px 6px; border-radius:4px; font-size:11px;'>{etq}</span></div>", unsafe_allow_html=True)
-                    with c5:
-                        if st.button("Ver Historial", key=f"exp_{exp_row['id']}", use_container_width=True):
-                            # Truco de redirección para ver la cita asociada o actualizar sus datos
-                            st.session_state.side_peek_modo = "NUEVA_CITA"
-                            st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.info("No se encontraron expedientes con los criterios de búsqueda provistos.")
-
-        # =================================================================================
-        # MÓDULO 3: AGENDA DE CITAS (VISTA TABULAR COMPLETA + PERÍODOS + CALENDARIO)
-        # =================================================================================
-        elif seccion == "📅 Agenda de Citas":
-            st.markdown("### 📅 Control Maestro de la Agenda de Citas")
-            
-            # --- SECCIONAR CITAS POR PERÍODOS ---
-            st.markdown("##### ⏱️ Filtrar Agenda por Período Clínico")
-            periodo_sel = st.segmented_control(
-                "Seleccionar Rango Dinámico:",
-                options=["Todas", "Hoy", "Esta Semana", "Este Mes", "Canceladas / No Asistió"],
-                default="Todas"
-            )
-            
-            # Consultar toda la BD con un merge relacional completo
-            conn = conectar_db_local()
-            df_citas_raw = pd.read_sql_query("""
-                SELECT c.id, e.matricula, e.nombre as paciente, e.carrera, c.fecha_hora, c.estado, c.motivo 
-                FROM citas c JOIN expedientes e ON c.expediente_id = e.id
-                ORDER BY c.fecha_hora DESC
-            """, conn)
-            conn.close()
-
-            # Lógica de filtrado en Pandas por periodos
-            df_citas_filtradas = df_citas_raw.copy()
-            hoy_str = date.today().strftime("%Y-%m-%d")
-
-            if periodo_sel == "Hoy":
-                df_citas_filtradas = df_citas_raw[df_citas_raw['fecha_hora'].str.startswith(hoy_str)]
-            elif periodo_sel == "Esta Semana":
-                lunes_semana = date.today() - timedelta(days=date.today().weekday())
-                domingo_semana = lunes_semana + timedelta(days=6)
-                # Parseo e intersección limpia
-                df_citas_raw['fecha_parsed'] = pd.to_datetime(df_citas_raw['fecha_hora']).dt.date
-                df_citas_filtradas = df_citas_raw[(df_citas_raw['fecha_parsed'] >= lunes_semana) & (df_citas_raw['fecha_parsed'] <= domingo_semana)]
-            elif periodo_sel == "Este Mes":
-                mes_actual_prefix = date.today().strftime("%Y-%m")
-                df_citas_filtradas = df_citas_raw[df_citas_raw['fecha_hora'].str.startswith(mes_actual_prefix)]
-            elif periodo_sel == "Canceladas / No Asistió":
-                df_citas_filtradas = df_citas_raw[df_citas_raw['estado'].isin(["Cancelada", "No Asistió"])]
-
-            # VISTA DE TABLA MAESTRA (Estilo idéntico a Expedientes Electrónicos)
-            st.markdown(f"#### 📋 Registros de Citas ({periodo_sel})")
-            if not df_citas_filtradas.empty:
-                st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
-                st.markdown("""
-                    <div class="notion-table-header">
-                        <div style="flex: 1; padding-left: 5px;">📅 Fecha / Hora</div>
-                        <div style="flex: 1.5;">👤 Paciente (Matrícula)</div>
-                        <div style="flex: 2;">🎯 Motivo de Atención</div>
-                        <div style="flex: 1;">✨ Estado</div>
-                        <div style="flex: 1; text-align: center;">⚙️ Acción</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                for _, cita_row in df_citas_filtradas.iterrows():
-                    c_tab1, c_tab2, c_tab3, c_tab4, c_tab5 = st.columns([1, 1.5, 2, 1, 1])
-                    with c_tab1: st.markdown(f"<div class='notion-table-row'>{cita_row['fecha_hora']}</div>", unsafe_allow_html=True)
-                    with c_tab2: st.markdown(f"<div class='notion-table-row'>{cita_row['paciente']} ({cita_row['matricula']})</div>", unsafe_allow_html=True)
-                    with c_tab3: st.markdown(f"<div class='notion-table-row'>{cita_row['motivo'][:45]}...</div>", unsafe_allow_html=True)
-                    with c_tab4: 
-                        color_estado = "#fef08a" if cita_row['estado'] == "Pendiente" else "#bbf7d0" if cita_row['estado'] == "Realizada" else "#fca5a5"
-                        st.markdown(f"<div class='notion-table-row'><span style='background-color:{color_estado}; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600;'>{cita_row['estado']}</span></div>", unsafe_allow_html=True)
-                    with c_tab5:
-                        if st.button("Evaluar / Editar", key=f"agenda_edit_{cita_row['id']}", use_container_width=True):
-                            st.session_state.side_peek_modo = "VER_CITA"
-                            st.session_state.cita_seleccionada_id = cita_row['id']
-                            st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.markdown('<div style="background-color: #ffffff; padding: 14px; border-left: 4px solid #0f172a; color: #0f172a; border-radius: 4px; font-size: 14px; border: 1px solid #e2e8f0; margin-bottom:15px;">No se registran bloques de citas bajo este filtro de período.</div>', unsafe_allow_html=True)
-
-            # --- RENDERIZADO DEL MODELO TIPO CALENDARIO ---
             st.markdown("---")
-            st.markdown("#### 🗓️ Visualizador de Calendario Clínico")
+
+            # INTERFAZ DE CALENDARIOS INTERACTIVOS
+            st.markdown("#### 📅 Visualizador de Calendario Clínico")
             c_p1, c_p2 = st.columns(2)
             with c_p1:
                 tipo_formato = st.selectbox("Formato Ajustado:", ["Mensual (Carga General)", "Semanal (Horario Laboral L-V)"])
             with c_p2:
-                fecha_pivote = st.date_input("Fecha Base Enfoque:", value=date.today(), key="pivote_date_agenda")
+                fecha_pivote = st.date_input("Fecha Base Enfoque:", value=date.today(), key="pivote_date")
 
-            # Estructurar mapeo rápido de fechas
             diccionario_citas_global = {}
-            for _, c_act in citas_tabla_global.iterrows():
+            for _, c_act in citas_tabla.iterrows():
                 try:
                     dt_c = datetime.strptime(c_act['fecha_hora'], "%Y-%m-%d %H:%M:%S")
                     f_str = dt_c.strftime("%Y-%m-%d")
@@ -539,7 +415,7 @@ else:
                                 if f_buscar in diccionario_citas_global:
                                     for cita_dia in diccionario_citas_global[f_buscar]:
                                         hora_c = cita_dia['fecha_hora'][11:16]
-                                        if st.button(f"⏱️ {hora_c}", key=f"cal_m_agenda_{cita_dia['id']}", use_container_width=True):
+                                        if st.button(f"⏱️ {hora_c}", key=f"cal_m_btn_{cita_dia['id']}", use_container_width=True):
                                             st.session_state.side_peek_modo = "VER_CITA"
                                             st.session_state.cita_seleccionada_id = cita_dia['id']
                                             st.rerun()
@@ -561,199 +437,205 @@ else:
                         if f_buscar_semana in diccionario_citas_global:
                             for cita_sem in diccionario_citas_global[f_buscar_semana]:
                                 hora_s = cita_sem['fecha_hora'][11:16]
-                                if st.button(f"{hora_s} - {cita_sem['nombre'][:12]}...", key=f"cal_s_agenda_{cita_sem['id']}", use_container_width=True):
+                                if st.button(f"{hora_s} - {cita_sem['nombre'][:12]}...", key=f"cal_s_btn_{cita_sem['id']}", use_container_width=True):
                                     st.session_state.side_peek_modo = "VER_CITA"
                                     st.session_state.cita_seleccionada_id = cita_sem['id']
                                     st.rerun()
                         else:
                             st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
-        # =================================================================================
-        # MÓDULO 4: REPORTES EJECUTIVOS
-        # =================================================================================
-        elif seccion == "📊 Reportes Ejecutivos":
-            st.markdown("### 📊 Módulo de Analíticas y Reportes")
-            
-            conn = conectar_db_local()
-            total_exp = conn.cursor().execute("SELECT count(*) FROM expedientes").fetchone()[0]
-            total_cit = conn.cursor().execute("SELECT count(*) FROM citas").fetchone()[0]
-            pendientes = conn.cursor().execute("SELECT count(*) FROM citas WHERE estado='Pendiente'").fetchone()[0]
-            conn.close()
+        # -----------------------------------------------------------------------------
+        # COLUMNA DERECHA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK
+        # -----------------------------------------------------------------------------
+        if st.session_state.side_peek_modo:
+            with col_derecha:
+                c_tit, c_close = st.columns([3.5, 1.5])
+                with c_tit:
+                    if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
+                    elif st.session_state.side_peek_modo == "VER_CITA":
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
+                    elif st.session_state.side_peek_modo == "NUEVA_CITA":
+                        st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda</h4>", unsafe_allow_html=True)
+                with c_close:
+                    if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
+                        st.session_state.side_peek_modo = None
+                        st.session_state.cita_seleccionada_id = None
+                        st.rerun()
+                
+                st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Complete los datos del alumno institucional.</p>", unsafe_allow_html=True)
 
-            # Tarjetas de KPIS Estadísticos
-            m1, m2, m3 = st.columns(3)
-            with m1:
-                st.markdown(f"<div style='background-color:#ffffff; padding:20px; border-radius:6px; border:1px solid #e2e8f0;'><small style='color:#475569; font-weight:600;'>EXPEDIENTES ACTIVOS</small><h2 style='margin:5px 0; font-size:28px;'>{total_exp} Alumnos</h2></div>", unsafe_allow_html=True)
-            with m2:
-                st.markdown(f"<div style='background-color:#ffffff; padding:20px; border-radius:6px; border:1px solid #e2e8f0;'><small style='color:#475569; font-weight:600;'>TOTAL CONSULTAS</small><h2 style='margin:5px 0; font-size:28px;'>{total_cit} Sesiones</h2></div>", unsafe_allow_html=True)
-            with m3:
-                st.markdown(f"<div style='background-color:#ffffff; padding:20px; border-radius:6px; border:1px solid #e2e8f0;'><small style='color:#475569; font-weight:600;'>CITAS PENDIENTES</small><h2 style='margin:5px 0; font-size:28px; color:#ec4899 !important;'>{pendientes} Por Atender</h2></div>", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.info("Métricas de atención optimizadas para la división DACYTI conforme a los estándares universitarios vigentes.")
-
-    # =================================================================================
-    # COLUMNA DERECHA COMPARTIDA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK
-    # =================================================================================
-    if st.session_state.side_peek_modo:
-        with col_derecha:
-            c_tit, c_close = st.columns([3.5, 1.5])
-            with c_tit:
+                # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                    st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📝 Registro de Expediente</h4>", unsafe_allow_html=True)
-                elif st.session_state.side_peek_modo == "VER_CITA":
-                    st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📄 Evaluación Clínica</h4>", unsafe_allow_html=True)
-                elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                    st.markdown("<h4 style='color:#0f172a !important; margin:0; font-weight:700;'>📅 Nueva Agenda</h4>", unsafe_allow_html=True)
-            with c_close:
-                if st.button("Retraer >>", key="btn_close_panel_global", use_container_width=True):
-                    st.session_state.side_peek_modo = None
-                    st.session_state.cita_seleccionada_id = None
-                    st.rerun()
-            
-            st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Panel de edición y gestión instantánea.</p>", unsafe_allow_html=True)
-
-            # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
-            if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
-                st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
-                st.markdown("##### 👤 Datos Personales y Académicos")
-                exp_nom = st.text_input("Nombre Completo del Alumno:")
-                exp_mat = st.text_input("Matrícula Institucional:")
-                
-                cf1, cf2 = st.columns(2)
-                with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
-                with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
-                
-                lista_divisiones = ["DACYTI", "DAIA", "DACB"]
-                exp_div = st.selectbox("División Académica:", options=lista_divisiones)
-                
-                lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
-                exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada)
-                exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
-                
-                st.markdown("---")
-                st.markdown("##### 🩺 Campos de Contacto y Seguimiento")
-                exp_tel = st.text_input("Teléfono de Contacto:", value="")
-                exp_cor = st.text_input("Correo Electrónico:", value="")
-                exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
-                exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
-                
-                if st.button("Registrar Expediente Electrónico", use_container_width=True):
-                    if exp_mat.strip() and exp_nom.strip():
-                        conn = conectar_db_local()
-                        if conn:
-                            try:
-                                tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
-                                conn.cursor().execute("""
-                                    INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
-                                conn.commit()
-                                st.success("¡Expediente guardado exitosamente!")
-                                st.session_state.side_peek_modo = None
-                                st.rerun()
-                            except sqlite3.IntegrityError:
-                                st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
-                            finally: 
-                                conn.close()
-                    else:
-                        st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
-            elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
-                conn = conectar_db_local()
-                cursor = conn.cursor()
-                
-                # Query robusta adaptativa controlando dinámicamente si la columna notas_evolucion está lista
-                col_nota = "notas_evolucion" if "notas_evolucion" in columnas_citas else "motivo"
-                
-                datos_cita = cursor.execute(f"""
-                    SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, 
-                           IFNULL(c.{col_nota}, '') as notes_ev, 
-                           IFNULL(e.etiquetas, '') as tags, 
-                           e.id, e.matricula
-                    FROM citas c 
-                    JOIN expedientes e ON c.expediente_id = e.id 
-                    WHERE c.id = ?
-                """, (st.session_state.cita_seleccionada_id,)).fetchone()
-                conn.close()
-
-                if datos_cita:
-                    st.markdown(f"<span style='color:#0284c7 !important; font-size:14px; font-weight: 600;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
+                    st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
+                    st.markdown("##### 👤 Datos Personales y Académicos")
+                    exp_nom = st.text_input("Nombre Completo del Alumno:")
+                    exp_mat = st.text_input("Matrícula Institucional:")
                     
-                    with st.form("form_edicion_cita_notion"):
-                        peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
-                        peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
-                        peek_motivo = st.text_area("Motivo Clínico de Consulta:", value=datos_cita[4], disabled=True)
-                        peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=180, placeholder="Escriba aquí los detalles observados en la sesión...")
-                        peek_tags = st.text_input("Etiquetas Diagnósticas (Edición Directa):", value=datos_cita[6])
-
-                        if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
+                    cf1, cf2 = st.columns(2)
+                    with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
+                    with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
+                    
+                    lista_divisiones = ["DACYTI", "DAIA", "DACB"]
+                    exp_div = st.selectbox("División Académica:", options=lista_divisiones)
+                    
+                    lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
+                    exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada)
+                    exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
+                    
+                    st.markdown("---")
+                    st.markdown("##### 🩺 Campos de Contacto y Seguimiento")
+                    exp_tel = st.text_input("Teléfono de Contacto:", value="")
+                    exp_cor = st.text_input("Correo Electrónico:", value="")
+                    exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
+                    exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
+                    
+                    if st.button("Registrar Expediente Electrónico", use_container_width=True):
+                        if exp_mat.strip() and exp_nom.strip():
                             conn = conectar_db_local()
-                            cursor = conn.cursor()
-                            cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
-                            cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
-                            conn.commit()
-                            conn.close()
-                            st.session_state.side_peek_modo = None
-                            st.session_state.cita_seleccionada_id = None
-                            st.success("¡Historial clínico actualizado correctamente!")
-                            st.rerun()
+                            if conn:
+                                try:
+                                    tags_p = ",".join([t.strip().lower() for t in exp_tag.split(",") if t.strip()])
+                                    conn.cursor().execute("""
+                                        INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """, (exp_mat.strip(), exp_nom.strip(), exp_gen, int(exp_edad), exp_div, exp_car, exp_sem, exp_tel, exp_cor, exp_obs, tags_p))
+                                    conn.commit()
+                                    st.success("¡Expediente guardado exitosamente!")
+                                    st.session_state.side_peek_modo = None
+                                    st.rerun()
+                                except sqlite3.IntegrityError:
+                                    st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
+                                finally: 
+                                    conn.close()
+                        else:
+                            st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-            # --- ACCIÓN: AGENDAR NUEVA CITA ---
-            elif st.session_state.side_peek_modo == "NUEVA_CITA":
-                st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
-                st.markdown("##### 🔍 Buscar Alumno Paciente")
-                
-                mat_buscar = st.text_input(
-                    "Ingrese la Matrícula del Alumno:", 
-                    value="", 
-                    key="input_buscar_matricula_final",
-                    help="Solicite la matrícula al estudiante y digítela aquí"
-                ).strip()
-                
-                if mat_buscar:
+                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA (¡SISTEMA BLINDADO AQUÍ!) ---
+                elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
-                    alumno_data = conn.cursor().execute(
-                        "SELECT id, nombre, division, carrera FROM expedientes WHERE matricula = ?", 
-                        (mat_buscar,)
-                    ).fetchone()
+                    # Agregamos bloques IFNULL para resguardar la consulta si las nuevas columnas inyectadas vinieran vacías
+                    datos_cita = conn.cursor().execute("""
+                        SELECT c.id, e.nombre, c.fecha_hora, c.estado, c.motivo, 
+                               IFNULL(c.notas_evolucion, '') as notas_ev, 
+                               IFNULL(e.etiquetas, '') as tags, 
+                               e.id, e.matricula
+                        FROM citas c 
+                        JOIN expedientes e ON c.expediente_id = e.id 
+                        WHERE c.id = ?
+                    """, (st.session_state.cita_seleccionada_id,)).fetchone()
                     conn.close()
-                    
-                    if alumno_data:
-                        id_interno, nom_alumno, div_alumno, car_alumno = alumno_data
+
+                    if datos_cita:
+                        st.markdown(f"<span style='color:#0284c7 !important; font-size:14px; font-weight: 600;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
                         
-                        st.markdown(f"""
-                            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px; margin: 12px 0;">
-                                <span style="color: #166534; font-weight: 600; font-size: 14px;">✅ Alumno Localizado Exitosamente</span><br>
-                                <small style="color: #1e3a1e; font-weight: 500;">
-                                    <b>Nombre:</b> {nom_alumno}<br>
-                                    <b>Ubicación:</b> {div_alumno} — {car_alumno}
-                                </small>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        with st.form("form_confirmar_nueva_cita_final"):
-                            fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
-                            hora_cita = st.time_input("Hora de la Consulta:")
-                            motivo_cita = st.text_area("Motivo o Descripción de Sesión:", placeholder="Ej. Estrés académico...")
-                            
-                            if st.form_submit_button("Confirmar y Agendar Cita", use_container_width=True):
+                        # Formulario seguro de edición sin callbacks cruzados
+                        with st.form("form_edicion_cita_notion"):
+                            peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
+                            peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
+                            peek_motivo = st.text_area("Motivo Clínico de Consulta:", value=datos_cita[4], disabled=True)
+                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=180, placeholder="Escriba aquí los detalles observados en la sesión...")
+                            peek_tags = st.text_input("Etiquetas Diagnósticas (Edición Directa):", value=datos_cita[6])
+
+                            if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
-                                fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
-                                
-                                cursor.execute("""
-                                    INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
-                                    VALUES (?, ?, 'Pendiente', ?)
-                                """, (id_interno, fecha_hora_str, motivo_cita))
+                                cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
+                                cursor.execute("UPDATE expedientes SET etiquetas = ? WHERE id = ?", (peek_tags.strip().lower(), datos_cita[7]))
                                 conn.commit()
                                 conn.close()
-                                
-                                st.success(f"¡Cita asignada con éxito a {nom_alumno}!")
                                 st.session_state.side_peek_modo = None
+                                st.session_state.cita_seleccionada_id = None
+                                st.success("¡Historial clínico actualizado correctamente!")
                                 st.rerun()
+
+                # --- ACCIÓN: AGENDAR NUEVA CITA ---
+                elif st.session_state.side_peek_modo == "NUEVA_CITA":
+                    st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
+                    st.markdown("##### 🔍 Buscar Alumno Paciente")
+                    
+                    mat_buscar = st.text_input(
+                        "Ingrese la Matrícula del Alumno:", 
+                        value="", 
+                        key="input_buscar_matricula_final",
+                        help="Solicite la matrícula al estudiante y digítela aquí"
+                    ).strip()
+                    
+                    if mat_buscar:
+                        conn = conectar_db_local()
+                        alumno_data = conn.cursor().execute(
+                            "SELECT id, nombre, division, carrera FROM expedientes WHERE matricula = ?", 
+                            (mat_buscar,)
+                        ).fetchone()
+                        conn.close()
+                        
+                        if alumno_data:
+                            id_interno, nom_alumno, div_alumno, car_alumno = alumno_data
+                            
+                            st.markdown(f"""
+                                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px; margin: 12px 0;">
+                                    <span style="color: #166534; font-weight: 600; font-size: 14px;">✅ Alumno Localizado Exitosamente</span><br>
+                                    <small style="color: #1e3a1e; font-weight: 500;">
+                                        <b>Nombre:</b> {nom_alumno}<br>
+                                        <b>Ubicación:</b> {div_alumno} — {car_alumno}
+                                    </small>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            with st.form("form_confirmar_nueva_cita_final"):
+                                fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
+                                hora_cita = st.time_input("Hora de la Consulta:")
+                                motivo_cita = st.text_area("Motivo o Descripción de Sesión:", placeholder="Ej. Ansiedad escolar...")
+                                
+                                if st.form_submit_button("Confirmar y Agendar Cita", use_container_width=True):
+                                    conn = conectar_db_local()
+                                    cursor = conn.cursor()
+                                    fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
+                                    
+                                    cursor.execute("""
+                                        INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
+                                        VALUES (?, ?, 'Pendiente', ?)
+                                    """, (id_interno, fecha_hora_str, motivo_cita))
+                                    conn.commit()
+                                    conn.close()
+                                    
+                                    st.success(f"¡Cita agendada correctamente!")
+                                    st.session_state.side_peek_modo = None
+                                    st.rerun()
+                        else:
+                            st.markdown(f"""
+                                <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; margin: 12px 0;">
+                                    <span style="color: #991b1b; font-weight: 600; font-size: 14px;">❌ Matrícula No Registrada</span><br>
+                                    <small style="color: #7f1d1d;">La matrícula <b>"{mat_buscar}"</b> no coincide con ningún expediente activo.</small>
+                                </div>
+                            """, unsafe_allow_html=True)
                     else:
-                        st.error("No se encontró ningún estudiante con esa matrícula. Regístrelo primero en 'Nuevo Expediente'.")
-                st.markdown('</div>', unsafe_allow_html=True)
+                        st.info("💡 Por favor, tipee una matrícula institucional en la parte superior para desplegar los controles de agenda.")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+    # =================================================================================
+    # OTROS MÓDULOS SECUNDARIOS
+    # =================================================================================
+    elif seccion == "📋 Expedientes Electrónicos":
+        st.markdown("<h3 style='color:#0f172a !important;'>Repositorio General de Expedientes Clínicos</h3>", unsafe_allow_html=True)
+        bus_nom = st.text_input("🔍 Buscar Alumno por Nombre o Matrícula:")
+        
+        conn = conectar_db_local()
+        query = "SELECT matricula, nombre, genero, edad, division, carrera, semestre, etiquetas, observaciones FROM expedientes WHERE 1=1"
+        args = []
+        if bus_nom:
+            query += " AND (nombre LIKE ? OR matricula LIKE ?)"
+            args.extend([f"%{bus_nom}%", f"%{bus_nom}%"])
+        df_exp = pd.read_sql_query(query, conn, params=args)
+        conn.close()
+        
+        st.dataframe(df_exp, use_container_width=True)
+
+    elif seccion == "📅 Agenda de Citas":
+        st.markdown("<h3 style='color:#0f172a !important;'>Control de Citas Clínicas e Historial de Sesiones</h3>", unsafe_allow_html=True)
+        st.info("Utilice el panel principal '🏠 Inicio y Planner' para desplegar la ventana lateral interactiva de forma óptima.")
+
+    elif seccion == "📊 Reportes Ejecutivos":
+        st.markdown("<h3 style='color:#0f172a !important;'>Panel de Métricas y Estadísticas</h3>", unsafe_allow_html=True)
+        st.write("Módulo en desarrollo para la generación de analíticas semestrales institucionales.")

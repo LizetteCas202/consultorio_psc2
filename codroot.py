@@ -1,5 +1,5 @@
 # =================================================================
-#   SISTEMA DE GESTIÓN: Consultorio Psicológico DACYTI
+#    SISTEMA DE GESTIÓN: Consultorio Psicológico DACYTI
 # =================================================================
 import streamlit as st
 import pandas as pd
@@ -12,9 +12,10 @@ import urllib.parse
 LOGO_UJAT_URL = "https://images.seeklogo.com/logo-png/23/1/ujat-tabasco-logo-png_seeklogo-233582.png"
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
+# Corregido: Se usa un emoji estable para evitar fallos de renderizado en pestañas
 st.set_page_config(
     page_title="Consultorio Psicológico DACYTI",
-    page_icon=LOGO_UJAT_URL,
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -43,7 +44,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # 2. Crear tabla de expedientes con esquema base funcional
+        # 2. Crear tabla de expedientes con esquema corregido
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expedientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +74,7 @@ def inicializar_sistema_db():
             )
         """)
         
-        # --- 🚨 MIGRACIÓN AUTOMÁTICA EXTRA: EVITAR OPERATIONALERROR ---
+        # --- MIGRACIÓN AUTOMÁTICA EXTRA Y REPARACIÓN ---
         cursor.execute("PRAGMA table_info(citas)")
         columnas_citas = [col[1] for col in cursor.fetchall()]
         if "notas_evolucion" not in columnas_citas:
@@ -82,10 +83,12 @@ def inicializar_sistema_db():
 
         cursor.execute("PRAGMA table_info(expedientes)")
         columnas_exps = [col[1] for col in cursor.fetchall()]
+        if "carrera" not in columnas_exps:
+            try: cursor.execute("ALTER TABLE expedientes ADD COLUMN carrera TEXT DEFAULT ''")
+            except: pass
         if "etiquetas" not in columnas_exps:
             try: cursor.execute("ALTER TABLE expedientes ADD COLUMN etiquetas TEXT DEFAULT ''")
             except: pass
-            
         if "observaciones" not in columnas_exps:
             try: cursor.execute("ALTER TABLE expedientes ADD COLUMN observaciones TEXT DEFAULT ''")
             except: pass
@@ -109,7 +112,6 @@ if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = "
 if "side_peek_modo" not in st.session_state: st.session_state.side_peek_modo = None
 if "cita_seleccionada_id" not in st.session_state: st.session_state.cita_seleccionada_id = None
 
-# Mapeo maestro exclusivo: Divisiones y Carreras de la UJAT
 CARRERAS_POR_DIVISION = {
     "DACYTI": [
         "Licenciatura en Tecnologías de la Información",
@@ -273,7 +275,10 @@ st.markdown("""
 # --- 4. PORTAL DE ACCESO (LOGIN) ---
 if not st.session_state.autenticado:
     st.markdown('<div style="max-width:400px; margin:auto; padding-top:100px;">', unsafe_allow_html=True)
-    st.image(LOGO_UJAT_URL, width=90)
+    try:
+        st.image(LOGO_UJAT_URL, width=110)
+    except:
+        st.write("🔺 **UJAT Portal Clínico**")
     st.markdown("<h2>Acceso al Portal Clínico DACYTI</h2>", unsafe_allow_html=True)
     u_login = st.text_input("Usuario Corporativo:")
     p_login = st.text_input("Contraseña:", type="password")
@@ -291,17 +296,16 @@ if not st.session_state.autenticado:
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # Cabecera Fija del Consultorio DACYTI
+    # Cabecera Fija Estable
     st.markdown(f"""
         <div class="constante-header-container">
-            <img src="{LOGO_UJAT_URL}" width="35">
-            <h1 style="color:#0f172a !important; margin:0; font-size:24px;">Consultorio Psicológico DACYTI</h1>
+            <h1 style="color:#0f172a !important; margin:0; font-size:24px;">🧠 Consultorio Psicológico DACYTI</h1>
         </div>
     """, unsafe_allow_html=True)
 
     # Navegación Lateral Módulos
     st.sidebar.markdown("### 🗂️ Módulos de Gestión")
-    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos", "📅 Agenda de Citas"])
+    seccion = st.sidebar.radio("Ir a:", ["🏠 Inicio y Planner", "📋 Expedientes Electrónicos"])
     st.sidebar.markdown("---")
     st.sidebar.write(f"👤 **Personal Encargado:** {st.session_state.usuario_actual}")
     if st.sidebar.button("🔒 Cerrar Sesión", use_container_width=True):
@@ -313,7 +317,6 @@ else:
     # MÓDULO MAIN: INICIO Y PLANNER DINÁMICO
     # =================================================================================
     if seccion == "🏠 Inicio y Planner":
-        
         if st.session_state.side_peek_modo:
             col_izquierda, col_derecha = st.columns([55, 45], gap="medium")
         else:
@@ -440,9 +443,7 @@ else:
                         else:
                             st.markdown("<center><span style='color:#94a3b8; font-size:12px;'>Sin citas</span></center>", unsafe_allow_html=True)
 
-        # -----------------------------------------------------------------------------
-        # COLUMNA DERECHA: VENTANA DESPLEGABLE INTERACTIVA SIDE-PEEK (INICIO)
-        # -----------------------------------------------------------------------------
+        # Side-Peek Columna Derecha
         if st.session_state.side_peek_modo:
             with col_derecha:
                 c_tit, c_close = st.columns([3.5, 1.5])
@@ -459,32 +460,25 @@ else:
                         st.session_state.cita_seleccionada_id = None
                         st.rerun()
                 
-                st.markdown("<p style='color:#475569 !important; font-size:13px; margin-top:-5px;'>Complete los datos del alumno institucional.</p>", unsafe_allow_html=True)
-
-                # --- ACCIÓN: REGISTRAR NUEVO EXPEDIENTE ---
+                # Formulario Side-peek: Nuevo Expediente
                 if st.session_state.side_peek_modo == "NUEVO_EXPEDIENTE":
                     st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
-                    st.markdown("##### 👤 Datos Personales y Académicos")
                     exp_nom = st.text_input("Nombre Completo del Alumno:")
                     exp_mat = st.text_input("Matrícula Institucional:")
-                    
                     cf1, cf2 = st.columns(2)
                     with cf1: exp_edad = st.number_input("Edad:", min_value=15, max_value=60, value=20)
                     with cf2: exp_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"])
                     
                     lista_divisiones = ["DACYTI", "DAIA", "DACB"]
                     exp_div = st.selectbox("División Académica:", options=lista_divisiones)
-                    
                     lista_carreras_filtrada = CARRERAS_POR_DIVISION.get(exp_div, [])
                     exp_car = st.selectbox("Carrera Universitaria:", options=lista_carreras_filtrada)
                     exp_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                     
-                    st.markdown("---")
-                    st.markdown("##### 🩺 Campos de Contacto y Seguimiento")
-                    exp_tel = st.text_input("Teléfono de Contacto:", value="")
-                    exp_cor = st.text_input("Correo Electrónico:", value="")
-                    exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):", value="")
-                    exp_obs = st.text_area("Motivo de Consulta Inicial:", value="", height=100)
+                    exp_tel = st.text_input("Teléfono de Contacto:")
+                    exp_cor = st.text_input("Correo Electrónico:")
+                    exp_tag = st.text_input("Etiquetas Diagnósticas (separadas por comas):")
+                    exp_obs = st.text_area("Motivo de Consulta Inicial:")
                     
                     if st.button("Registrar Expediente Electrónico", use_container_width=True):
                         if exp_mat.strip() and exp_nom.strip():
@@ -500,15 +494,12 @@ else:
                                     st.success("¡Expediente guardado exitosamente!")
                                     st.session_state.side_peek_modo = None
                                     st.rerun()
-                                catch sqlite3.IntegrityError:
-                                    st.error("Error: La matrícula ingresada ya se encuentra registrada en el sistema.")
-                                finally: 
-                                    conn.close()
-                        else:
-                            st.warning("Por favor, complete los campos obligatorios de Nombre y Matrícula.")
+                                except sqlite3.IntegrityError:
+                                    st.error("La matrícula ya existe.")
+                                finally: conn.close()
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ACCIÓN: ACTUALIZAR EXPEDIENTE / CITA ---
+                # Formulario Side-peek: Ver Cita
                 elif st.session_state.side_peek_modo == "VER_CITA" and st.session_state.cita_seleccionada_id:
                     conn = conectar_db_local()
                     datos_cita = conn.cursor().execute("""
@@ -516,23 +507,18 @@ else:
                                IFNULL(c.notas_evolucion, '') as notas_ev, 
                                IFNULL(e.etiquetas, '') as tags, 
                                e.id, e.matricula
-                        FROM citas c 
-                        JOIN expedientes e ON c.expediente_id = e.id 
+                        FROM citas c JOIN expedientes e ON c.expediente_id = e.id 
                         WHERE c.id = ?
                     """, (st.session_state.cita_seleccionada_id,)).fetchone()
                     conn.close()
 
                     if datos_cita:
-                        st.markdown(f"<span style='color:#0284c7 !important; font-size:14px; font-weight: 600;'>✨ Paciente: {datos_cita[1]} | Matrícula: {datos_cita[8]}</span>", unsafe_allow_html=True)
-                        
+                        st.markdown(f"**Paciente:** {datos_cita[1]} | {datos_cita[8]}")
                         with st.form("form_edicion_cita_notion"):
-                            peek_estado = st.selectbox("Estado de la Consulta:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
-                            peek_fecha = st.text_input("Horario Programado:", value=datos_cita[2], disabled=True)
-                            peek_motivo = st.text_area("Motivo Clínico de Consulta:", value=datos_cita[4], disabled=True)
-                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=180, placeholder="Escriba aquí los detalles observados en la sesión...")
-                            peek_tags = st.text_input("Etiquetas Diagnósticas (Edición Directa):", value=datos_cita[6])
-
-                            if st.form_submit_button("Actualizar Historial Clínico", use_container_width=True):
+                            peek_estado = st.selectbox("Estado:", ["Pendiente", "Realizada", "Cancelada", "No Asistió"], index=["Pendiente", "Realizada", "Cancelada", "No Asistió"].index(datos_cita[3]))
+                            peek_notas = st.text_area("Notas de Evolución Clínica:", value=datos_cita[5], height=150)
+                            peek_tags = st.text_input("Etiquetas Diagnósticas:", value=datos_cita[6])
+                            if st.form_submit_button("Actualizar Historial"):
                                 conn = conectar_db_local()
                                 cursor = conn.cursor()
                                 cursor.execute("UPDATE citas SET estado = ?, notas_evolucion = ? WHERE id = ?", (peek_estado, peek_notas, datos_cita[0]))
@@ -540,167 +526,107 @@ else:
                                 conn.commit()
                                 conn.close()
                                 st.session_state.side_peek_modo = None
-                                st.session_state.cita_seleccionada_id = None
-                                st.success("¡Historial clínico actualizado correctamente!")
+                                st.success("¡Historial actualizado!")
                                 st.rerun()
 
-                # --- ACCIÓN: AGENDAR NUEVA CITA ---
+                # Formulario Side-peek: Nueva Cita
                 elif st.session_state.side_peek_modo == "NUEVA_CITA":
                     st.markdown('<div class="custom-card-form">', unsafe_allow_html=True)
-                    st.markdown("##### 🔍 Buscar Alumno Paciente")
-                    
-                    mat_buscar = st.text_input(
-                        "Ingrese la Matrícula del Alumno:", 
-                        value="", 
-                        key="input_buscar_matricula_final",
-                        help="Solicite la matrícula al estudiante y digítela aquí"
-                    ).strip()
-                    
+                    mat_buscar = st.text_input("Matrícula del Alumno:").strip()
                     if mat_buscar:
                         conn = conectar_db_local()
-                        alumno_data = conn.cursor().execute(
-                            "SELECT id, nombre, division, carrera FROM expedientes WHERE matricula = ?", 
-                            (mat_buscar,)
-                        ).fetchone()
+                        alumno_data = conn.cursor().execute("SELECT id, nombre, division, carrera FROM expedientes WHERE matricula = ?", (mat_buscar,)).fetchone()
                         conn.close()
-                        
                         if alumno_data:
-                            id_interno, nom_alumno, div_alumno, car_alumno = alumno_data
-                            
-                            st.markdown(f"""
-                                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px; margin: 12px 0;">
-                                    <span style="color: #166534; font-weight: 600; font-size: 14px;">✅ Alumno Localizado Exitosamente</span><br>
-                                    <small style="color: #1e3a1e; font-weight: 500;">
-                                        <b>Nombre:</b> {nom_alumno}<br>
-                                        <b>Ubicación:</b> {div_alumno} — {car_alumno}
-                                    </small>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            
-                            with st.form("form_confirmar_nueva_cita_final"):
-                                fecha_cita = st.date_input("Fecha de la Consulta:", value=date.today())
-                                hora_cita = st.time_input("Hora de la Consulta:")
-                                motivo_cita = st.text_area("Motivo o Descripción de Sesión:", placeholder="Ej. Ansiedad escolar...")
-                                
-                                if st.form_submit_button("Confirmar y Agendar Cita", use_container_width=True):
+                            st.success(f"Localizado: {alumno_data[1]}")
+                            with st.form("form_confirm_cita"):
+                                f_c = st.date_input("Fecha:", value=date.today())
+                                h_c = st.time_input("Hora:")
+                                m_c = st.text_area("Motivo:")
+                                if st.form_submit_button("Agendar Cita"):
                                     conn = conectar_db_local()
-                                    cursor = conn.cursor()
-                                    fecha_hora_str = f"{fecha_cita} {hora_cita.strftime('%H:%M:%S')}"
-                                    
-                                    cursor.execute("""
-                                        INSERT INTO citas (expediente_id, fecha_hora, estado, motivo)
-                                        VALUES (?, ?, 'Pendiente', ?)
-                                    """, (id_interno, fecha_hora_str, motivo_cita))
+                                    fh_str = f"{f_c} {h_c.strftime('%H:%M:%S')}"
+                                    conn.cursor().execute("INSERT INTO citas (expediente_id, fecha_hora, estado, motivo) VALUES (?, ?, 'Pendiente', ?)", (alumno_data[0], fh_str, m_c))
                                     conn.commit()
                                     conn.close()
-                                    
-                                    st.success(f"¡Cita agendada correctamente!")
                                     st.session_state.side_peek_modo = None
+                                    st.success("¡Cita agendada!")
                                     st.rerun()
                         else:
-                            st.markdown(f"""
-                                <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; margin: 12px 0;">
-                                    <span style="color: #991b1b; font-weight: 600; font-size: 14px;">❌ Matrícula No Registrada</span><br>
-                                    <small style="color: #7f1d1d;">La matrícula <b>"{mat_buscar}"</b> no coincide con ningún expediente activo.</small>
-                                </div>
-                            """, unsafe_allow_html=True)
-                    else:
-                        st.info("💡 Por favor, tipee una matrícula institucional en la parte superior para desplegar los controles de agenda.")
+                            st.error("Matrícula no encontrada.")
                     st.markdown('</div>', unsafe_allow_html=True)
 
     # =================================================================================
-    # MÓDULO: 📋 EXPEDIENTES ELECTRÓNICOS (PROCESADO AL 100% - SIN MÓDULOS VACÍOS)
+    # MÓDULO: 📋 EXPEDIENTES ELECTRÓNICOS (REDISEÑADO COMPLETO Y OPERATIVO)
     # =================================================================================
     elif seccion == "📋 Expedientes Electrónicos":
-        st.markdown("### 📋 Archivo Clínico Digital y Registro")
-        st.markdown("Consulte el padrón completo de alumnos con expedientes aperturados y dé de alta nuevos registros de forma centralizada.")
-        
-        # Grid Principal: Izquierda (Ver Expedientes existentes) | Derecha (Formulario rápido de alta)
-        col_tabla_exp, col_registro_exp = st.columns([60, 40], gap="large")
-        
-        with col_tabla_exp:
+        st.markdown("### 📋 Registro Histórico de Expedientes Clínicos")
+        st.markdown("Consulte el histórico completo de alumnos atendidos o registre uno nuevo directamente en esta sección.")
+
+        # Layout dividido: Izquierda (Base de Datos), Derecha (Registro Rápido)
+        col_db, col_reg = st.columns([60, 40], gap="large")
+
+        with col_db:
             st.markdown("#### 🔍 Expedientes en la Base de Datos")
-            
-            # Buscador dinámico integrado
-            busqueda = st.text_input("Buscar alumno por Nombre o Matrícula:", placeholder="Ej. Marlene Raem o 212F...")
-            
-            # Conexión directa para jalar expedientes
             conn = conectar_db_local()
-            if busqueda.strip():
-                query_exp = "SELECT id, matricula, nombre, division, carrera, semestre, etiquetas FROM expedientes WHERE nombre LIKE ? OR matricula LIKE ? ORDER BY nombre ASC"
-                df_exp = pd.read_sql_query(query_exp, conn, params=(f"%{busqueda}%", f"%{busqueda}%"))
-            else:
-                df_exp = pd.read_sql_query("SELECT id, matricula, nombre, division, carrera, semestre, etiquetas FROM expedientes ORDER BY nombre ASC", conn)
+            expedientes_df = pd.read_sql_query("""
+                SELECT matricula as 'Matrícula', nombre as 'Nombre Alumno', 
+                       genero as 'Género', edad as 'Edad', division as 'División', 
+                       carrera as 'Carrera', semestre as 'Semestre', telefono as 'Teléfono', 
+                       correo as 'Correo', observaciones as 'Motivo Consulta', etiquetas as 'Etiquetas' 
+                FROM expedientes
+                ORDER BY id DESC
+            """, conn)
             conn.close()
-            
-            if not df_exp.empty:
-                st.markdown('<div class="notion-table-container">', unsafe_allow_html=True)
-                st.markdown("""
-                    <div class="notion-table-header">
-                        <div style="flex: 1.2; padding-left: 5px;">🔑 Matrícula</div>
-                        <div style="flex: 2;">Aa Nombre del Alumno</div>
-                        <div style="flex: 1.5;">🏫 Carrera / División</div>
-                        <div style="flex: 1.5;">🏷️ Etiquetas</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                for _, fila_e in df_exp.iterrows():
-                    c_exp1, c_exp2, c_exp3, c_exp4 = st.columns([1.2, 2, 1.5, 1.5])
-                    with c_exp1:
-                        st.markdown(f"<div class='notion-table-row'><b>{fila_e['matricula']}</b></div>", unsafe_allow_html=True)
-                    with c_exp2:
-                        st.markdown(f"<div class='notion-table-row'>👤 {fila_e['nombre']} <small style='color:#64748b;'>({fila_e['semestre']})</small></div>", unsafe_allow_html=True)
-                    with c_exp3:
-                        st.markdown(f"<div class='notion-table-row'>{fila_e['division']} - <small>{fila_e['carrera'][:15]}...</small></div>", unsafe_allow_html=True)
-                    with c_exp4:
-                        tag_display = fila_e['etiquetas'] if fila_e['etiquetas'] else "sin etiquetas"
-                        st.markdown(f"<div class='notion-table-row'><span style='background-color:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; color:#475569;'>{tag_display}</span></div>", unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+
+            if not expedientes_df.empty:
+                # Buscador dinámico de apoyo incorporado nativamente en el dataframe de Streamlit
+                st.dataframe(
+                    expedientes_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                st.caption(f"💡 Total de expedientes electrónicos almacenados: {len(expedientes_df)}")
             else:
-                st.markdown('<div style="background-color: #ffffff; padding: 14px; border-left: 4px solid #0f172a; color: #0f172a; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 500;">Ningún expediente coincide con los criterios de búsqueda o la BD está vacía.</div>', unsafe_allow_html=True)
+                st.info("No hay expedientes clínicos registrados aún en el sistema.")
+
+        with col_reg:
+            st.markdown("#### ➕ Registrar Otro Expediente Directo")
+            with st.form("form_registro_directo_expedientes"):
+                reg_nom = st.text_input("Nombre Completo del Alumno:")
+                reg_mat = st.text_input("Matrícula Institucional:")
                 
-        with col_registro_exp:
-            st.markdown("#### ➕ Alta Rápida de Expediente")
-            
-            with st.form("form_modulo_expedientes_directo"):
-                reg_nom = st.text_input("Nombre Completo del Alumno *:")
-                reg_mat = st.text_input("Matrícula Institucional *:")
+                c_r1, c_r2 = st.columns(2)
+                with c_r1: reg_edad = st.number_input("Edad Alumno:", min_value=16, max_value=65, value=20)
+                with c_r2: reg_gen = st.selectbox("Género Alumno:", ["Masculino", "Femenino", "Otro"])
                 
-                creg1, creg2 = st.columns(2)
-                with creg1: reg_edad = st.number_input("Edad:", min_value=16, max_value=65, value=20, key="reg_edad_k")
-                with creg2: reg_gen = st.selectbox("Género:", ["Masculino", "Femenino", "Otro"], key="reg_gen_k")
+                reg_div = st.selectbox("División Académica de origen:", options=["DACYTI", "DAIA", "DACB"])
+                reg_car = st.selectbox("Carrera Universitaria inscrita:", options=CARRERAS_POR_DIVISION.get(reg_div, []))
+                reg_sem = st.selectbox("Semestre cursando:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"])
                 
-                reg_div = st.selectbox("División Académica:", options=["DACYTI", "DAIA", "DACB"], key="reg_div_k")
-                reg_car = st.selectbox("Carrera Universitaria:", options=CARRERAS_POR_DIVISION.get(reg_div, []), key="reg_car_k")
-                reg_sem = st.selectbox("Semestre:", ["1ro", "2do", "3ro", "4to", "5to", "6to", "7mo", "8vo", "9no"], key="reg_sem_k")
-                
-                reg_tel = st.text_input("Teléfono Móvil:")
-                reg_cor = st.text_input("Correo Institucional:")
-                reg_tag = st.text_input("Etiquetas Iniciales (separadas por comas):")
-                reg_obs = st.text_area("Motivo de Consulta / Observaciones:", height=100)
-                
-                if st.form_submit_button("Crear y Guardar Expediente", use_container_width=True):
+                reg_tel = st.text_input("Teléfono:")
+                reg_cor = st.text_input("Correo Institucional o Personal:")
+                reg_tag = st.text_input("Etiquetas o Palabras clave (separadas por comas):", placeholder="ej. estres, adaptacion")
+                reg_obs = st.text_area("Motivo de la Consulta:")
+
+                if st.form_submit_button("Guardar y dar de Alta Expediente", use_container_width=True):
                     if reg_nom.strip() and reg_mat.strip():
                         conn = conectar_db_local()
-                        try:
-                            tags_procesadas = ",".join([t.strip().lower() for t in reg_tag.split(",") if t.strip()])
-                            conn.cursor().execute("""
-                                INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (reg_mat.strip(), reg_nom.strip(), reg_gen, int(reg_edad), reg_div, reg_car, reg_sem, reg_tel, reg_cor, reg_obs, tags_procesadas))
-                            conn.commit()
-                            st.success(f"¡Expediente de {reg_nom} creado correctamente!")
-                            st.rerun()
-                        except sqlite3.IntegrityError:
-                            st.error("Error crítico: Esa matrícula ya pertenece a un estudiante registrado.")
-                        finally:
-                            conn.close()
+                        if conn:
+                            try:
+                                tags_procesados = ",".join([t.strip().lower() for t in reg_tag.split(",") if t.strip()])
+                                conn.cursor().execute("""
+                                    INSERT INTO expedientes (matricula, nombre, genero, edad, division, carrera, semestre, telefono, correo, observaciones, etiquetas)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (reg_mat.strip(), reg_nom.strip(), reg_gen, int(reg_edad), reg_div, reg_car, reg_sem, reg_tel, reg_cor, reg_obs, tags_procesados))
+                                conn.commit()
+                                st.success(f"¡Expediente de {reg_nom} dado de alta con éxito!")
+                                conn.close()
+                                # Forzar recarga inmediata de la pantalla para ver el nuevo registro en la tabla
+                                st.rerun()
+                            except sqlite3.IntegrityError:
+                                st.error("Error operativo: La matrícula ya se encuentra registrada en el sistema.")
+                            finally:
+                                if conn: conn.close()
                     else:
-                        st.error("Los campos Nombre y Matrícula son estrictamente obligatorios.")
-
-    # =================================================================================
-    # MÓDULO: 📅 AGENDA DE CITAS
-    # =================================================================================
-    elif seccion == "📅 Agenda de Citas":
-        st.markdown("### 📅 Control Maestro de Citas y Agendamiento Directo")
-        st.markdown("Gestión integrada de citas. Para agendar nuevas consultas o modificar el estatus de las existentes, utilice el **Panel Interactivo** de la sección **🏠 Inicio y Planner** para desplegar de forma dinámica el formulario seguro de atención.")
+                        st.warning("Los campos de Nombre y Matrícula son estrictamente obligatorios.")
